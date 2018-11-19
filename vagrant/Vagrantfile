@@ -1,0 +1,66 @@
+Vagrant.require_version ">= 1.8.0"
+
+# Vorraussetzungen Virtualbox 5.1.28 
+# Set proxy temporarily first and then install vagrant-proxyconf:
+# set http_proxy=http://10.10.10.10:8080
+# set https_proxy=%http_proxy%
+# vagrant plugin install vagrant-proxyconf
+# vagrant plugin install vagrant-vbguest
+
+unless Vagrant.has_plugin?("vagrant-proxyconf")
+  raise 'vagrant proxyconf plugin is not installed! Please install with: vagrant plugin install vagrant-proxyconf (set http_proxy and https_proxy variable first!)'
+end
+
+unless Vagrant.has_plugin?("vagrant-vbguest")
+  raise 'vagrant vbguest plugin is not installed! Please install with: vagrant plugin install vagrant-vbguest'
+end
+
+Vagrant.configure(2) do |config|
+
+	config.vm.define "control" do |control|
+		config.vm.hostname = 'vader'
+		control.vm.box = "ubuntu/trusty64"
+
+		#control.vm.network "private_network", ip: "10.0.0.200"
+		control.vm.network "private_network", ip: "192.168.100.200"
+		control.vm.network "forwarded_port", guest: 5000, host_ip: "127.0.0.1", host: 5000
+
+		control.vm.provider "virtualbox" do |v|
+			v.memory = 8192
+			v.cpus = 4  
+		end
+
+		#config.proxy.http = "http://10.10.10.10:8080"
+		#config.proxy.https = "http://10.10.10.10:8080"
+		#config.proxy.no_proxy = "localhost,127.0.0.1,mydomain"
+
+		config.vm.provision "shell", inline: "sudo apt-get update -y"
+		config.vm.provision "shell", inline: "sudo apt-get install software-properties-common -y"
+		config.vm.provision "shell", inline: "sudo apt-add-repository ppa:ansible/ansible -y"
+		config.vm.provision "shell", inline: "sudo apt-get update -y"
+		config.vm.provision "shell", inline: "sudo apt-get install ansible -y"
+
+		config.vm.provision "shell", path: "resources/custom_script.sh"
+
+		config.vm.synced_folder ".", "/vagrant", type: "virtualbox"
+	end
+	
+	config.vm.define "lb01" do |lb01|
+		config.vm.box = "centos/7"
+		#lb01.vm.network "private_network", ip: "10.0.0.201"
+		lb01.vm.network "private_network", ip: "192.168.100.201"
+	end
+
+	config.vm.define "app01" do |app01|
+		app01.vm.box = "ubuntu/trusty64"
+		#app01.vm.network "private_network", ip: "10.0.0.202"
+		app01.vm.network "private_network", ip: "192.168.100.202"
+	end
+
+	config.vm.define "app02" do |app02|
+		app02.vm.box = "ubuntu/trusty64"
+		#app02.vm.network "private_network", ip: "10.0.0.203"
+		app02.vm.network "private_network", ip: "192.168.100.203"
+	end
+
+end

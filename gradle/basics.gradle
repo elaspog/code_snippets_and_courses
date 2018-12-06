@@ -1,0 +1,175 @@
+
+
+// docker run -v ${PWD}:/home/gradle/project -w /home/gradle/project -it gradle gradle ...
+
+// gradle <task_name>
+// gradle -b <gradle_filepath>
+
+
+// Projects
+
+project.description = "Sample description" 
+project.version = 1.0
+
+ext {
+	myVariable1 = "variableValue1"
+}
+ext.myVariable2 = "variableValue2"
+
+
+println "Project description : \t${project.description}|${description}"
+println "Project version     : \t${project.version}|${version}"
+println "Project myVariable1 : \t${project.myVariable1}|${myVariable1}"
+println "Project myVariable2 : \t${project.myVariable2}|${myVariable2}"
+println ""
+
+// Tasks
+
+defaultTasks 'displayProperties'
+
+// gradle displayProperties
+// gradle -b build.gradle
+// gradle -b build.gradle displayProperties
+// gradle -b build.gradle dP
+
+description = "Sample Description for Project"
+task displayProperties {
+	description = "Task to display properties"
+	ext {
+		taskProp1 = "Prop Val"
+	}
+	doFirst {
+		println "Project Description: $project.description"
+		println "Task name: $name"
+		println "Task Description: $description"
+	}
+	doLast {
+		println "Task Property 1: $taskProp1"
+	}
+}
+
+// check the modified values
+println "Project description : \t${project.description}|${description}"
+println "Project version     : \t${project.version}|${version}"
+println "Project myVariable1 : \t${project.myVariable1}|${myVariable1}"
+println "Project myVariable2 : \t${project.myVariable2}|${myVariable2}"
+
+
+// Task dependency
+
+// "<<" is shortcut for "doLast" ("<<" is deprecated in newer versions of Gradle)
+// "dependsOn" make task dependent to another
+// "mustRunAfter" ensures the order of execution between tasks when their order would be interchangeble
+
+
+//task clean << {
+//	println 'Executing clean task'
+//}
+task clean {
+	doLast {
+        println 'Executing clean task'
+    }
+}
+
+//task compile << {
+//	println 'Executing compile task'
+//}
+task compile {
+	doLast {
+		println 'Executing compile task'
+    }
+}
+compile.dependsOn 'clean'
+
+// "package" is a reserved word, therefore should be passes as a 
+//task ("package", dependsOn : 'compile') << {
+//	println 'Executing package task'
+//}
+task ("package", dependsOn : 'compile') {
+	doLast {
+		println 'Executing package task'
+    }
+}
+
+
+// gradle A
+// gradle B
+// gradle C
+
+task A { doLast { println 'In task A' } }
+task B { doLast { println 'In task B' } }
+task C { doLast { println 'In task C' } }
+
+A.dependsOn 'B'
+A.dependsOn 'C'
+B.mustRunAfter 'C'
+
+
+// Skipping task
+// External property
+
+// gradle skipInProd1 -Penv=Prod
+// gradle skipInProd1 -Penv=Dev
+task skipInProd1 {
+	onlyIf {
+		!project.hasProperty('env') || project.env != "Prod"
+	}
+	doLast {
+		println 'Task execution complete'
+	}
+}
+
+// gradle skipInProd2 -Penv=Prod
+// gradle skipInProd2 -Penv=Dev
+task skipInProd2 {
+	enabled = !project.hasProperty('env') || project.env != "Prod"
+	doLast {
+		println 'Task execution complete'
+	}
+}
+
+
+// Task types
+
+// gradle archiveTask
+// gradle copyTask
+// gradle showWindowsVersion
+// gradle cleanTask
+
+//task archiveTask (type : Zip) {
+//	archiveName 'images.zip'	// output zip file name
+//	from 'images'				// input directory path
+//	into "$buildDir/dist"		// output directory path
+//}
+//
+//task copyTask(type : Copy) {
+//	from 'src/config/dev.cert'
+//	from 'src/db'
+//	into 'dist'
+//}
+//
+//task showWindowsVersion(type:Exec) {
+//	commandLine 'cmd', 'ver'
+//}
+//
+//task cleanTask (type : Delete) {
+//	delete 'build/libs', 'build/docs'	// deletes files and folders
+//}
+
+
+// Phases: Initialization, Configuration, Execution
+
+// gradle noActionTask
+// gradle withActionTask
+
+task noActionTask {
+	description = "A task with no actions"
+	println "I am in the configuration block of $name"
+}
+task withActionTask {
+	println "I am in the configuration block of $name"
+	doLast {
+		println "performing an action in $name"
+	}
+}
+

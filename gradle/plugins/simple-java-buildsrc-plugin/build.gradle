@@ -1,6 +1,6 @@
 
 
-// >gradle greet
+// >gradle greetJava
 
-apply plugin: HelloPlugin
+apply plugin: HelloJavaPlugin
 

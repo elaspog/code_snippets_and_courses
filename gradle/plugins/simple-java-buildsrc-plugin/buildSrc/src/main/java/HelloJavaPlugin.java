@@ -4,11 +4,11 @@ import org.gradle.api.Project;
 import java.util.Map;
 import java.util.HashMap;
 
-public class HelloPlugin implements Plugin<Project> {
+public class HelloJavaPlugin implements Plugin<Project> {
 
 	@Override
 	public void apply(Project project) {
-		project.getTasks().create("greet", GreetTask.class);
+		project.getTasks().create("greetJava", GreetJavaTask.class);
 	}
 
 }

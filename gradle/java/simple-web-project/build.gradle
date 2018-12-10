@@ -1,0 +1,20 @@
+
+
+// >gradle build
+// >gradle war
+
+apply plugin: 'war'
+
+// apply plugin: 'jetty'
+// >gradle jettyRun
+// not working in new versions
+// http://localhost:8080/<foldername>
+
+
+war {
+	archiveName 'new-archive.war'
+	//webXml file ('src/config/web.xml')
+	from 'src/media/images'
+}
+
+//webAppDirName = 'src/WebContent'

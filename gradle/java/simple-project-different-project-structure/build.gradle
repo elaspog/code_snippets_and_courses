@@ -1,0 +1,27 @@
+
+
+// >gradle build
+
+
+apply plugin: 'java'
+// >gradle tasks
+
+// defaults:
+//	src/main/java
+//	src/main/resources
+//	src/test/java
+//	src/test/resources
+sourceSets {
+	main {
+		java {
+			srcDir 'source/java'
+		}
+	}
+	test {
+		java {
+			srcDirs = ['source/test', 'source/integration']
+		}
+	}
+}
+
+// output.classesDir

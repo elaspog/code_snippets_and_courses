@@ -1,0 +1,25 @@
+
+
+// >gradle build
+// >gradle javadoc
+
+
+apply plugin: 'java'
+// >gradle tasks
+
+jar {
+	archiveName = 'introducing-gradle.jar'
+	manifest {
+		attributes (
+			'Main-Class' : 'HelloGradle',
+			'Implementation-Title' : project.name,
+			'Developer' : 'Anonymous'
+		)
+	}
+}
+
+// Defaults
+// src/main/java
+// src/main/resources
+// src/test/java
+// src/test/resources

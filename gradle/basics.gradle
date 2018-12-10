@@ -1,8 +1,7 @@
 
 
-// docker run -v ${PWD}:/home/gradle/project -w /home/gradle/project -it gradle gradle ...
-
 // gradle <task_name>
+// default: build.gradle
 // gradle -b <gradle_filepath>
 
 
@@ -172,4 +171,16 @@ task withActionTask {
 		println "performing an action in $name"
 	}
 }
+
+
+// Plugins
+
+// script plugin from local file system
+// apply from: 'reusable-build.gradle'
+
+// script plugin from remote server
+// apply from: 'http://your_server.com/plugin_path/plugin_name'
+
+// binary plugin
+// apply plugin: 'plugin_id'
 

@@ -1,0 +1,116 @@
+
+// > gradle build
+// > gradle dependencies
+// > gradle displayJars
+// > gradle shadowJar
+
+apply plugin: 'java'
+
+
+ext {
+	logbackVersion = '1.1.2'
+	commonsLangVersion = '3.4'
+	junitVersion = '4.12'
+	hsqlDbVersion = '2.3.3'
+	springVersion = '3.0.0.RELEASE'
+}
+
+dependencies {
+
+	// External module dependencies
+	
+	compile 'org.springframework:spring-core:4.2.2.RELEASE', 'org.apache.httpcomponents:httpclient:4.0'
+
+	compile "ch.qos.logback:logback-classic:$logbackVersion", "org.apache.commons:commons-lang3:$commonsLangVersion"
+
+	testCompile (
+		[group: 'junit', name: 'junit', version: "$junitVersion"],
+		[group: 'org.hsqldb', name: 'hsqldb', version: "$hsqlDbVersion"]
+	)
+
+	['spring-core', 'spring-aop','spring-beans', 'spring-jdbc', 'springcontext'].each {
+		compile "org.springframework:$it:$springVersion"
+	}
+
+	// for flat directory repositories
+	//compile name: 'commons-lang3', version : '3.4'
+	//compile name: 'logback-classic', version: '1.1.3'
+
+	// File dependencies
+
+	//compile files ("lib/logback-classic-1.1.3.jar", "lib/commons-lang3-3.4.jar")
+
+	compile fileTree (dir : "lib", include: "*.jar")
+
+	// Project dependencies
+
+	//compile project (":service")
+
+}
+
+configurations.all {
+	
+	// Resolving conflict
+
+	resolutionStrategy {
+	
+		// forces a given version
+		force 'commons-logging:commons-logging:1.1.1'
+		
+		// fails on build
+		//failOnVersionConflict()
+		// in newest version does not seem to work properly
+	}
+}
+
+repositories {
+
+	//maven {
+	//	url "http://your_repo.url"
+	//	credentials {
+	//		username 'user_name'
+	//		password 'pwd'
+	//	}
+	//}
+
+	//flatDir {
+	//	// these dependencies are included in the project's dependency descriptor
+	//	dirs 'lib'
+	//}
+
+	// USER_HOME/.m2
+	//mavenLocal()
+
+	// https://repo1.maven.org/maven2
+	mavenCentral()
+
+	// https://bintray.com/bintray/jcenter
+	//jcenter()
+
+}
+
+//task displayJars << {
+//	println "${configurations.compile.collect {File f -> f.name}}"
+//}
+
+task displayJars {
+	doLast {
+		println "${configurations.compile.collect {File f -> f.name}}"
+	}
+}
+
+
+// fat JAR creation
+//buildscript {
+//	repositories {
+//		maven {
+//			url "https://plugins.gradle.org/m2/"
+//		}
+//	}
+//	dependencies {
+//		classpath "com.github.jengelman.gradle.plugins:shadow:1.2.2"
+//	}
+//}
+//
+//apply plugin: "com.github.johnrengelman.shadow"
+

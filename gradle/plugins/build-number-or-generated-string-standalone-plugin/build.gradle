@@ -1,0 +1,19 @@
+
+// > gradle jar
+// > gradle buildnumbertask
+// > gradle uploadArchives
+
+apply plugin: 'groovy'
+
+group = 'com.example.gradle'
+version = '1.0.0'
+
+dependencies {
+	compile gradleApi()
+}
+
+uploadArchives {
+	repositories {
+		flatDir { dirs "../repo" }
+	}
+}

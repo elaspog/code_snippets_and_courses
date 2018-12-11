@@ -1,0 +1,24 @@
+
+apply plugin: 'java'
+apply plugin: 'build-number-plugin'
+
+buildNumber {
+	numberType = 'timestamp'
+	//numberType = 'alphanumeric'
+	//alphaNumLength = 5
+}
+
+buildscript {
+	repositories {
+		flatDir {
+			dirs '../repo'
+		}
+	}
+	dependencies { classpath 'com.example.gradle:build-number-or-generated-string-standalone-plugin-1.0.0' }
+}
+
+jar.doFirst {
+	manifest {
+		attributes('Build-Number': project.buildNumber.value)
+	}
+}

@@ -1,0 +1,9 @@
+
+//include 'web', 'service', 'repository'
+
+include 'web'
+include 'service'
+include 'repository'
+
+// subproject of subproject
+//include 'repository:data'

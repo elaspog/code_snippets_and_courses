@@ -1,0 +1,9 @@
+
+//includeFlat 'web', 'service', 'repository'
+
+includeFlat 'web'
+includeFlat 'service'
+includeFlat 'repository'
+
+// subproject of subproject
+//include 'repository:data'

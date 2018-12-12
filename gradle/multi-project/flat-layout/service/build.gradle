@@ -1,0 +1,9 @@
+
+// optional build.gradle file, can be missing from the subproject's directory
+
+
+//apply plugin: 'java'
+//
+//dependencies {
+//	compile project(':repository')
+//}

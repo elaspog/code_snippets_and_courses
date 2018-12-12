@@ -1,0 +1,52 @@
+
+// >gradle projects
+// >gradle build
+
+// >gradle <project-path>:tasks
+// >gradle repository:tasks
+// >gradle service:tasks
+// >gradle web:tasks
+
+
+// applied to root and all subprojects, attributes/configuration/tasks that apply to all projects
+allprojects {
+	group = "com.example.gradle"
+	version = "1.0.0-SNAPSHOT"
+}
+
+// applied to all subprojects
+subprojects {
+
+	//apply plugin: 'java'
+
+	repositories {
+		mavenCentral()
+	}
+
+}
+
+// it's better to put the followings into build.gradle files of the subprojects
+
+// is applied to only a specific subproject
+project (':repository') {
+	apply plugin: 'java'
+}
+
+// is applied to only a specific subproject
+// in this example this is in the build.gradle of the subproject
+//project (':service') {
+//	apply plugin: 'java'
+//
+//	dependencies {
+//		compile project(':repository')
+//	}
+//}
+
+// is applied to only a specific subproject
+project(':web') {
+	apply plugin: 'war'
+
+	dependencies {
+		compile project(':service')
+	}
+}

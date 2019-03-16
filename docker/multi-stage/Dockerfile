@@ -1,0 +1,25 @@
+
+# Creating build + release docker images:
+#   Docker Builder Pattern
+#   Milti-stage Build
+
+
+# Base Image
+FROM alpine:3.5 AS base
+RUN apk add --no-cache curl
+
+# Second Image
+FROM debian AS second
+RUN echo hello > /hello
+LABEL image=second
+
+# Third Image
+FROM ubuntu AS third
+RUN echo world > /world
+LABEL image=third
+
+# Final Image
+FROM base
+# Copy files from other images
+COPY --from=second /hello /hello
+COPY --from=third /world /world

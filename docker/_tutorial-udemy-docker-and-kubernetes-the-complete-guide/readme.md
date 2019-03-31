@@ -98,7 +98,7 @@ docker run hello-world
 
 // programs exist in container's file system
 docker run busybox echo hi there
-docker run busybox echo by there
+docker run busybox echo bye there
 docker run busybox ls
 
 // programs do not exists in container's file system
@@ -451,4 +451,143 @@ docker ps
 docker commit -c 'CMD["redis-server"]' <running-container-id>	// outputs image id
 docker run <image-id>
 ```
+
+## S4/L39 A Few Planned Errors
+
+```
+// npm install
+// npm start
+```
+
+```
+ls
+docker build .	// ERROR: npm not found
+```
+
+## S4/L40 Base Image Issues
+
+* find a different base image
+	* with preinstalled `node` and `npm`
+* continue using the previous image but configure
+
+https://hub.docker.com/
+
+`alpine` = term in docker world for image: _'small and compact as possible'_
+
+```
+docker build .	// ERROR: no parkage.json
+```
+
+## S4/L42 Copying Build Files
+
+Dockerfile:
+
+```
+// COPY <from-local-file-system-path> <to-container-file-system-path>
+```
+
+where `from-local-file-system-path` is relative to build context
+
+```
+docker build .
+docker build -t stephengrider/simpleweb .
+docker run stephengrider/simpleweb
+```
+
+in web browser:
+
+```
+localhost:8080	// ERROR: the page is not loaded
+```
+
+## S4/L43 Container Port Mapping
+
+* __incoming requests__: by default no traffic coming into the localhost network is routed into the container
+	* container has isolated set of ports
+	* to reach into the container need to he specified (by port mapping) explicitly
+* __outgoing requests__: reach out from the container is not limited by default
+
+```
+// docker run -p 8080:8080 <image-id>
+// docker run -p 8080:8080 <image-name>
+
+docker run -p 8080:8080 stephengrider/simpleweb
+```
+
+in web browser:
+
+```
+localhost:8080	// OK
+```
+
+The localhost and container ports do not have to he identical:
+
+```
+docker run -p 5000:8080 stephengrider/simpleweb
+```
+
+## S4/L44 Specifying a Working Directory
+
+```
+docker run -it stephengrider/simpleweb sh
+# ls	// NodeJS files are copied to '/' directory, might be in conflict
+# exit
+```
+
+Dockerfile:
+
+```
+// WORKDIR <container-file-system-path>
+```
+
+Any following commands or instructions will be executed relative to the the defined folder.
+Affects commands that are executed inside the container later on by `exec` command.
+
+```
+docker build -t stephengrider/simpleweb .
+docker run -p 8080:8080 stephengrider/simpleweb
+```
+
+in another local shell:
+
+```
+docker ps	// outputs the container id
+docker exec -ti <container-id> sh
+/usr/app # ls	// enter to the directory defined by WORKDIR
+/usr/app # cd /
+# ls	// there are no conflicting files
+```
+
+## S4/L45 Unnecessary Rebuilds
+
+```
+docker run -p 8080:8080 stephengrider/simpleweb
+```
+
+The change made in `index.js` is not going to be automatically reflected inside the container. One option is to rebuild the container.
+
+```
+docker build -t stephengrider/simpleweb .	// Docker has detected the changes in the copied files
+```
+
+Therefore it executes every step after the command of the detected change.
+
+## S4/L46 Minimizing Cache Busting and Rebuilds
+
+Only `package.json` needs to be copied for `npm install`. The changed `index.js` can be copied by a latter `COPY` command to maximize the common layer history.
+
+(example 2)
+
+```
+docker build -t stephengrider/simpleweb .
+docker build -t stephengrider/simpleweb .	// uses cached version of every single step
+```
+
+(example 2)
+
+```
+docker build -t stephengrider/simpleweb .	// runs quickly
+```
+
+The order of `Dockerfile` commands make difference in build time.
 

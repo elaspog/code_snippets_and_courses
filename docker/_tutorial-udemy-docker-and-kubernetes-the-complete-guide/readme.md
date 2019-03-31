@@ -591,3 +591,188 @@ docker build -t stephengrider/simpleweb .	// runs quickly
 
 The order of `Dockerfile` commands make difference in build time.
 
+## S5/L50 Assembling a Dockerfile
+
+```
+docker build .
+docker build -t stephengrider/visits:latest .
+```
+
+## S5/L51 Introducing Docker Compose
+
+```
+docker run stephengrider/visits	// ERROR: can't connect to redis server
+docker run redis	// start a redis server
+```
+
+The containers are isolated processes don't have any communication.
+
+```
+docker run stephengrider/visits	// ERROR: can't connect to redis server
+```
+
+Networking infrastructure needs to be set:
+
+* use Docker CLI's network features
+* use Docker Compose
+
+```
+docker-compose
+```
+
+## S5/L52 Docker Compose Files
+
+docker-compose.yml
+
+```
+// docker build -t stephengrider/visits:latest
+// docker run -p 8080:8080 stephengrider/visits
+```
+
+* __version__ specifies file format
+* __services__ is the type of a container
+* __image__ use a predefined service/container
+* __build__ use the Dockerfile to build an image
+* __ports__ array of port mappings
+
+## S5/L53 Networking with Docker Compose
+
+Docker Compose automatically creates the containers on the same network.  
+The `ports` declaration in `docker-compose.yml` file is to open up access to container from local machine.
+
+index.js:
+
+* if not using Docker:
+
+```
+redis.createClient({
+  host: 'https://my-redis-server.com'
+}
+```
+
+* if using Docker (where `redis-server` is referring to the name given in `docker-compose.yml` file):
+
+```
+redis.createClient({
+  host: 'redis-server'
+}
+```
+
+default redis port number: 6379
+
+## S5/L54 Docker Compose Commands
+
+```
+docker-compose up
+```
+
+Starts the image with an optional build:
+
+```
+// docker-compose up
+// similar to
+// docker run myimage
+```
+
+Starts the image with a necessary rebuild:
+
+```
+// docker-compose up --build
+// similar to
+// docker build .
+// docker run myimage
+```
+
+## S5/L55 Stopping Docker Compose Containers
+
+```
+docker run -d redis
+docker ps
+docker stop <container-id>
+```
+
+```
+docker-compose up -d
+docker-compose down
+docker ps
+```
+
+## S5/L56 Container Maintenance with Compose
+
+```
+docker-compose up --build
+```
+
+in another shell:
+
+```
+docker ps	// there is just one running container
+```
+
+## S5/L57 Automatic Container Restarts
+
+Exit status codes:
+
+* __0__ = everything is OK
+* __1,2,3,...__ = something went wrong
+
+Restart policies:
+
+* __"no"__ or __'no'__ = never attempts to restart the container
+	* quotes need to be used because of the YAML syntax
+* __always__ = always attempts to restart
+* __on-failure__ = only restarts if the container stops with an error code
+* __unless-stopped__ = always restarts unless it's forcibly stopped
+
+(example 1)
+
+```
+// index.js: process.exit(0);
+// docker-compose.yml: restart: always
+```
+
+```
+docker-compose up
+```
+
+__WARNING__: Docker can decide to restart or reuse the container. If reuses it, the STDOUT log will show all the previous messages.
+
+(example 2)
+
+```
+// index.js: process.exit(0);
+// docker-compose.yml: restart: on-failure
+```
+
+Due to the value of the exit code the container will not be restarted.
+
+## S5/L58 Container Status with Docker Compose
+
+in local shell 1:
+
+```
+docker run redis
+```
+
+in local shell 2:
+
+```
+docker ps
+```
+
+in local shell 1:
+
+```
+CTRL+C
+docker-compose up
+```
+
+in local shell 2:
+
+```
+docker-compose ps	// looks for docker-compose.yaml
+cd ..
+docker-compose ps	// ERROR
+cd visits
+```
+

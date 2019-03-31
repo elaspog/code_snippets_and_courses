@@ -344,3 +344,111 @@ in local shell 2:
 # ls	// there is no file named 'hithere'
 ```
 
+## S3/L27 Creating Docker Images
+
+Dockerfile
+
+* base image
+* run some commands to install additional programs
+* specify a command to run on container startup
+
+## S3/L28 Building a Dockerfile
+
+```
+cd redis-image
+docker build .
+docker run <image-id>
+```
+
+## S3/L29 Dockerfile Teardown
+
+Instructions for Docker Server + Arguments:
+
+```
+FROM	alpine
+RUN 	apk add --update redis
+CMD 	["redis-server"]
+```
+
+## S3/L30 What's a Base Image?
+
+* The __FROM__ command defines the base image (implicitly the operating system)  
+alpine = operating system
+
+Later operating system specific instructions are used.  
+apk = preinstalled package manager
+
+## S3/L31 The Build Process in Detail
+
+* Temporary containers are created in each step of the build process. The temporary containers run the __RUN__ instructions of the Dockerfile as their primary running process, during the execution they modify their file system, then a snapshot is made from their file system, which defines the output image.
+* The __CMD__ instruction of the Dockerfile sets the primary command/process of the container, does not execute it. This last image is used for starting the final container.
+
+```
+// docker build <build-context>
+docker build .
+```
+
+## S3/L33 Rebuilds with Cache
+
+During the build process:
+
+* there is no image fetching from dockerhub
+* reuses the already created cached/saved images
+
+(example 1)
+
+```
+docker build .
+docker build .
+```
+
+Until the series of steps is unchanged in the Dockerfile the Docker can reuse the images with the same history. When the order of the operations changes, new images should be  generated. That's why the new instructions need to be placed to the latest possible position in the Dockerfile to get the longest common history.
+
+(example 2)
+
+```
+docker build .
+```
+
+## S3/L34 Tagging an Image
+
+Technically only the `version` is the _tag_.
+
+```
+docker build .
+docker run <image-id>	// hard to find
+
+// docker build -t <docker-id>/<repo-or-project-name>:<version> <build-context>
+```
+
+The images with shorter names are community images (e.g.:):
+
+* redis
+* hello-world
+* busybox
+
+```
+docker build -t stephengrinder/redis:latest .
+docker run stephengrinder/redis
+```
+
+## S3/L35 Manual Image Generation with Docker Commit
+
+* Image can be used to initiate containers.
+* Container can be used to create new image.
+
+in local shell 1:
+
+```
+docker run -it alpine sh
+# apk add --update redis
+```
+
+in local shell 2:
+
+```
+docker ps
+docker commit -c 'CMD["redis-server"]' <running-container-id>	// outputs image id
+docker run <image-id>
+```
+

@@ -84,7 +84,7 @@ docker version
 
 ## S2/L13 Docker Run in Detail
 
-in local shell:
+in local terminal:
 
 ```
 // docker run <image-name>
@@ -109,7 +109,7 @@ docker run hello-world ls
 
 ## S2/L15 Listing Running Containers
 
-in local shell:
+in local terminal:
 
 ```
 docker ps
@@ -117,7 +117,7 @@ docker run busybox echo hi there
 docker run ping google.com
 ```
 
-in another local shell:
+in another local terminal:
 
 ```
 docker ps
@@ -201,13 +201,13 @@ docker kill <container-id>	// instant kill
 
 ## S2/L21 Multi-Command Containers
 
-in local shell:
+in local terminal:
 
 ```
 redis-server
 ```
 
-in another local shell:
+in another local terminal:
 
 ```
 redis-cli
@@ -215,7 +215,7 @@ redis-cli
 > get mynumber
 ```
 
-in local shell:
+in local terminal:
 
 ```
 docker run redis
@@ -313,32 +313,32 @@ Exit from command processor:
 * `exit` command
 
 
-in local shell 1:
+in local terminal 1:
 
 ```
 docker run -it bosybox sh
 ```
 
-in local shell 2:
+in local terminal 2:
 
 ```
 docker run -it bosybox sh
 ```
 
-in local shell 3:
+in local terminal 3:
 
 ```
 docker ps
 ```
 
-in local shell 1:
+in local terminal 1:
 
 ```
 # touch hithere
 # ls
 ```
 
-in local shell 2:
+in local terminal 2:
 
 ```
 # ls	// there is no file named 'hithere'
@@ -437,14 +437,14 @@ docker run stephengrinder/redis
 * Image can be used to initiate containers.
 * Container can be used to create new image.
 
-in local shell 1:
+in local terminal 1:
 
 ```
 docker run -it alpine sh
 # apk add --update redis
 ```
 
-in local shell 2:
+in local terminal 2:
 
 ```
 docker ps
@@ -548,7 +548,7 @@ docker build -t stephengrider/simpleweb .
 docker run -p 8080:8080 stephengrider/simpleweb
 ```
 
-in another local shell:
+in another local terminal:
 
 ```
 docker ps	// outputs the container id
@@ -703,7 +703,7 @@ docker ps
 docker-compose up --build
 ```
 
-in another shell:
+in another terminal:
 
 ```
 docker ps	// there is just one running container
@@ -748,31 +748,260 @@ Due to the value of the exit code the container will not be restarted.
 
 ## S5/L58 Container Status with Docker Compose
 
-in local shell 1:
+in local terminal 1:
 
 ```
 docker run redis
 ```
 
-in local shell 2:
+in local terminal 2:
 
 ```
 docker ps
 ```
 
-in local shell 1:
+in local terminal 1:
 
 ```
 CTRL+C
 docker-compose up
 ```
 
-in local shell 2:
+in local terminal 2:
 
 ```
 docker-compose ps	// looks for docker-compose.yaml
 cd ..
 docker-compose ps	// ERROR
 cd visits
+```
+
+## S6/L59-61 Development Workflow + Flow Specifics + Docker's Purpose
+
+* Workflow:
+	* Development -> Testing -> Deployment
+	* DEV -> TEST -> PROD
+* GitHub repository
+	* branches: feature -> master
+		* pull request
+* Travis CI
+* AWS Elastic Beanstalk
+
+## S6/L62 Project Generation
+
+```
+node -v
+```
+
+## S6/L63 More on Project Generation
+
+* ReactJS with NodeJS
+
+```
+npm install -g create-react-app
+create-react-app frontend
+```
+
+## S6/L64 Necessary Commands
+
+`npm run test`	: runs tests associated to the project  
+`npm run build` : builds a production version of the application  
+`npm run start` : starts up a deveopment server (development use only)  
+
+```
+npm run test
+npm run build
+ls
+ls build
+ls build/static
+ls build/static/js
+npm run start
+```
+
+## S6/L65 Creating the Dev Dockerfile
+
+```
+docker build .	// ERROR: the 'Dockerfile' is not existing in the directory
+docker build -f Dockerfile.dev .	// OK
+```
+
+## S6/L66 Duplicating Dependencies
+
+The __node_modules__ directory maked the context sent to Docker daemon very large.
+Possible solution is to delete this directory.
+
+## S6/L67 Starting the Container
+
+```
+docker run <image-id>
+docker run -p 3000:3000 <image-id>
+```
+
+If a source file (e.g. `src/App.js`) is changed, the changes are not reflected to the docker container or application automatically.
+
+Possible solutions:
+
+* rebuild the image
+	* it's very time consuming to rebuild the image each time when source code changes
+* using volumes
+
+## S6/L68 Quick Note for Windows Users
+
+Create-React-App has some issues detecting when files get changed on Windows based machines.
+
+https://facebook.github.io/create-react-app/docs/troubleshooting#npm-start-doesn-t-detect-changes
+
+## S6/L69 Docker Volumes
+
+```
+// docker run -p 3000:3000 -v /app/node_modules -v $(pwd):/app <image-id>
+docker build -f Dockerfile.dev .
+docker run -p 3000:3000 -v $(pwd):/app <image-id>	// the application does not start correctly
+```
+
+__Warning__ : the `$(pwd)` command is not working properly in Windows based terminals
+
+## S6/L70 Bookmarking Volumes
+
+__-v &lt;local-folder-path&gt;:&lt;container-folder-path&gt;__ = maps folders  
+__-v &lt;placeholder-in-container&gt;__ = booksmarks the folder inside the container, prevents from mounting
+
+```
+docker run -p 3000:3000 -v /app/node_modules -v $(pwd):/app <image-id>
+```
+
+__Warning__ : the `$(pwd)` command is not working properly in Windows based terminals
+
+After using the mounted source code, the effect of a change is immediate.
+After a change in src/App.js in local folder, in browser:
+
+```
+localhost:3000
+```
+
+## S6/L71 Shorthand with Docker Compose
+
+```
+docker-compose up	// ERROR: the Dockerfile can't be found
+```
+
+## S6/L72 Overriding Dockerfile Selection
+
+in docker-compose.yml:
+
+```
+...
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+...
+```
+
+in local terminal:
+
+```
+docker-compose up	// OK
+```
+
+## S6/L74 Executing Tests
+
+Travis CI - Continuous Integration service
+
+```
+docker build -f Dockerfile.dev .
+docker run <container-id> npm run test	// overrides the existing command 'npm run start' but the test can't accept input
+docker run -it <container-id> npm run test	// OK
+...
+CTRL+C
+```
+
+## S6/L75 Live Updating Tests
+
+After modifying the `src/App.test.js` file, the tests were not rerun. A container has been created specifically to run the tests. The temporary container does not have the volumes set up. Without the volumes set up the outdated files are used inside the container.
+
+Possible solutions:
+
+* Create a new service in `docker-compose.yml`, set up the volumes. The entire purpose of that service is to run the test suite.
+* Reuse the existing container
+
+in local terminal 1:
+
+```
+docker-compose up
+```
+
+in local terminal 2:
+
+```
+docker ps
+docker exec -it <container-id> npm run test
+```
+
+After modifying something in tests, the whole test suite will run again.
+
+__Downside__: had to remember the container-id, then execute the test inside the container.
+
+## S6/L76 Docker Compose for Running Tests
+
+```
+docker-compose up --build
+```
+
+After modifying something in tests, the whole test suite will run again.
+
+__Downside__: we are getting the output inside the logging interface of docker-compose, but there is no ability to enter inputs.
+
+## S6/L77 Shortcomings on Testing
+
+If there is a running test suite launched with docker-compose (executed by the commands of the previous lecture), then in a second terminal:
+
+```
+docker ps	// get the container-id of the image created from frontend-web image
+docker attach <container-id>	// working exactly like the docker-compose solution
+```
+
+The input can't be given, the test suite can't be manipulated.
+
+in a third terminal:
+
+```
+docker exec -ti <container-id> sh
+/app # ps
+```
+
+The `ps` command shows, that the primary process `npm` starts another processes according to the given arguments. A process of those is running the tests. The `docker attach` always attaches to the STDIN of the primary process of the container, but notthe `npm` command is interpreting the user inputs for the test suite.
+
+There are other test frameworks which do not accept inputs.
+
+## S6/L78 Need for Nginx
+
+* In development environment the requests go the the development server, which is running in a Web Container. The resources are served by this development server.
+* The production version of the application is created by `npm run build`. There is no development server involved (because it has a ton of processing power inside of it, dedicated to processing JS files and putting themtogether), which is not required in production.
+
+In production environment a server is needed with sole purpose to respont browser requests and serve JS and HTML files that contains application code: __nginx__
+
+## S6/L79 Multi-Step Docker Builds
+
+Only the static content of the `build` directory (generated by the `npm run build` command is needed) is needed for production environment. For hosting simple static content __nginx__ can be used.
+
+* Build phase
+	* use node:alpine
+	* copy package.json
+	* install dependencies
+	* run `npm run build`
+* Run phase
+	* run __nginx__
+	* copy the results of `npm run build`
+	* start __nginx__
+
+## S6/L80 Implementing Multi-Step Builds
+
+https://hub.docker.com/_/nginx
+
+## S6/L81 Running Nginx
+
+```
+docker build .
+docker run -p 8080:80 <container-id>
 ```
 

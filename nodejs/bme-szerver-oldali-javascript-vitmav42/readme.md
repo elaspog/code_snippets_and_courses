@@ -1,6 +1,8 @@
 
 # Tutorial
 
+https://www.youtube.com/channel/UCG6cDGNzf63pH-x74HGKXNw/videos
+
 ## 1. Előadás - Bevezetés (2019)
 
 https://www.youtube.com/watch?v=x6a5ZpbZufw
@@ -765,4 +767,162 @@ for (var i=0; i<4; i++){
 // itt már 0,1,2,3 íródik ki, mert létrejön egy szam nevű lokális válotzó (ami lehetne i is)
 // * direktbe ráhív i értékével, nem menti el változóba
 ```
+
+## 4. Gyakorlat - Javascript nyelvi elemek gyakorlat (2017)
+
+https://www.youtube.com/watch?v=Nbt7Qm5onKQ
+
+Chrome -> developer mode
+inspect, console, sources, breakpoint, minified JS
+
+in console:
+
+```
+> var a = "33";
+> a
+> typeof a
+> a + 2
+> a + 3
+> parseInt(a) + a
+> function b(){console.log("asd");}
+> b()
+```
+
+__Debug:__
+
+(példa 1) index.js
+
+Chrome debuggeren keresztül:
+
+```
+node --inspect --debug-brk index.js
+```
+
+(példa 2)
+
+`--debug-brk` az első soron egy breakpoint-ot rak le, ahol meg is áll a kód. Express alkalmazásnál, amely eleve várakozó módban fut, nincs szükség erre.
+
+TCP kapcslatobn keresztül:
+
+```
+node debug index.js
+```
+
+(példa 3)
+
+* modul
+	* függvény kiajánlása
+	* getter
+* függvények felülírása
+
+(példa 4)
+
+__Fontos__: Amikor a require meghívódik, abban a pillanatban kezdi csak el a kódját értelmezni. Addig sem a szintaktikai, sem a szemantikai hibák nem derülnek ki. Ez probléma tud lenni (pl. Express alkalmazásnál).
+
+(példa 5)
+
+Ugyanazzal a szignatúrával hívható minden függvény, függetlenül attól, hogy szinkron, vagy aszinkron függvény volt.
+A callback függvény az összeadásnál hamarabb fog lefutni, mint a művelet végének kiírása. Kivonásnál ez fordítiva van.
+
+(példa 6)
+
+__Fontos__: Mindig odafigyelni, hogy mi szinkron és mi anszinkron művelet. Ami aszinkron, az általában callback paramétert vár.
+NodeJS manual
+
+```
+// lambda függvény ugyanaz mint a sima függvény (ES6)
+(err) => {
+}
+
+// sima függvény
+function(err){
+}
+```
+
+Javascript class-ek helyett object használata előnyösebb. Object-re kívülről is rá bind-olhatók a tagváltozói, tagfüggvényei.
+
+(példa 7)
+(példa 8)
+
+A listából való törlések a referencia miatt problematikusak lehetnek.
+
+(példa 9)
+(példa 10)
+
+Function-nek nincs önmagában this értéke, de `bind` függvénnyel értékül adható neki kontextus.
+
+(példa 11)
+
+```
+var removeValamit = function(){
+	box.removeItemSafe(valami);
+}
+removeValamit();
+// helyett
+var valahova = [box.removeItemSafe.bind(box),valami];
+valahova[0](valahova[1]);
+// vagy
+var valahova = {0: box.removeItemSafe.bind(box), 1: valami};
+valahova[0](valahova[1]);
+// vagy
+var magic = box.removeItemSafe.bind(box,valami);
+magic();
+```
+
+Nemcsak a this-t lehet bindolni, hanem a paramétereket.
+A lista típus is egy object, csak speciális.
+
+Szemantikailag:
+
+```
+//function bind(fv,kontextus){
+//	this = kontextus;
+//	fv();
+//}
+```
+
+__Fontos__: Az adatbázis műveletek aszinkronok.
+
+A függvényt stringgé lehet castolni:
+
+```
+function fgv(){
+	return [1,2,3]
+}
+
+console.log(fgv + "");		// kód
+console.log(fgv() + "");	// meghívás
+```
+
+`eval`-al a string-gé cast-olt kód újra lefuttatható.
+
+```
+var a = 2;
+eval("a = 4")
+console.log(a);
+
+console.log(process.argv);
+eval(process.argv);
+```
+
+__process.argv__ a kapott paraméterek tömbje
+
+```
+node index.js alma "szokozos szoveg"
+```
+
+(példa 12)
+
+```
+console.log(eval(process.argv[2]));
+```
+
+```
+node index.js "3 + 4 * ( 3 + 3)"
+node index.js "setTimeout(function(){console.log('ezt ne');},200); "3" "
+```
+
+(példa 13)
+
+Az szöveges input azonnal értelmezhető.
 

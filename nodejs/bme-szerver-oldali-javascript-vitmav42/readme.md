@@ -926,3 +926,638 @@ node index.js "setTimeout(function(){console.log('ezt ne');},200); "3" "
 
 Az szöveges input azonnal értelmezhető.
 
+## 5. Előadás - Express keretrendszer (2017)
+
+https://www.youtube.com/watch?v=lkrOcH27jvE
+
+### Routing
+
+```
+var experss = require('epress');
+var app = express();
+
+app.get('/', function(req, res, next){
+	res.send('Hello World!');
+});
+
+var server = app.listen(3000, function(){
+	console.log('Running on: 3000');
+});
+```
+
+A __routing__ az alkalmazás feldarabolására jó, bár vannak olyan rendszerek, ahol loginolni kell, vagy az URL-ek idővel megszűnnek.
+FronEnd-heavy oldalak tipikusan nem töltik újra az egész oldalt, de ők is módosítják az URL-t. A modern böngészők anélkül módosítják a címsor tartalmát, hogy tényleges navigáció történjen.
+
+```
+app.use('/tasks',function(req, res, next){
+	console.log('hello /tasks');
+});
+app.get('/',function(req, res, next){
+	console.log('hello / with GET');
+});
+app.post('/',function(req, res, next){
+	console.log('hello / with POST');
+});
+```
+
+__SEO__ szempontjából is fontosak a fenti routingok.
+
+Az `app.param` megadásnál kikényszeríthető egy előfeldolgozás (pl. ellenőrzés, konvertálás), mielőtt a paraméter tényleges használata megtörténhetne.
+
+```
+app.param('userid', function(req, res, next, id){
+	console.log('Userid: ' + id);
+	next();
+});
+app.get('/user/:userid', function(req, res, next){
+	console.log('Elvileg mar validalt a userid.');
+	res.end();
+});
+```
+
+Egy route-ra egy lépésben több __middleware__-t is fel lehet iratkoztatni.
+
+```
+app.get('/user/:userid', function(req, res, next){
+	console.log('Itt is csinalunk valamit');
+	next();
+}, function(req, res, next){
+	console.log('Meg itt is.');
+	res.end();
+})
+```
+
+Mindenre történő feliratkozás. A /* elhagyható, de a route nélküli meghívás esetén az összes lekérdezésre megtörténik a feliratkozás:
+
+```
+app.use('/*', function(req, res, next){
+	console.log('Mindenhol');
+	next();
+});
+```
+
+Több route-ra való feliratkozás:
+
+```
+app.use(['/users/:valami', '/tasks/*'], function(req, res, next){
+	console.log('Tobbhelyen');
+	next();
+});
+```
+
+Regexp-el történő feliratkozás (helyette paraméter ellenőrzéssel olvashatóbb):
+
+```
+app.use(/^\/commits\/(\w+)(?:\.\.(\w+))?$/, function(req, res, next){
+	console.log('Lol regexp');
+	next();
+});
+```
+
+### Middleware
+
+A __Middleware__ egy egyszerű függvény. Hozzáfér a `request` és `response` objektumokhoz és hatással van az őt meghívó végrehajtási láncra is. Mivel minden _async_, a végrehajtási lánc `next()` hatására lép tovább (a `return` nem működik, csak egyszerűsítő hatása van).
+
+```
+function (req, res, next){
+	...
+	next();
+}
+```
+
+A lentiek közül igy mindkettő meghívódik a `GET: /user/12` hívásra.
+
+```
+app.get('/user/*', function (req, res, next){
+	console.log('Valami tortenik.');
+	next();
+});
+app.get('/user/:userid', function (req, res, next){
+	console.log('Meg itt is.');
+	res.end();
+});
+```
+
+Middleware újrafelhasználás:
+
+```
+var authMW = function(req, res, next){
+	// ellenorizzuk, hogy be van-e jelentkezve a user
+	// ha nincs atiranyitjuk a bejelentkezo oldalra
+	// ha be van akkor next-et hívunk
+	next();
+}
+
+app.get('/user/:userid', 
+	authMW,
+	function (req, res, next){
+		console.log('Mar biztosan be van lepve a user.');
+	}
+);
+app.get('/tasks', 
+	authMW,
+	function (req, res, next){
+		console.log('Mar biztosan be van lepve a user.');
+	}
+);
+```
+
+A __Controller__ funkcionalitása széttöredezhető middleware-ekre. Ha nincs `next()` hívás egy middleware-ben, az őt követő middleware sosem fog lefutni.
+
+```
+app.use('/tasks/mew',
+	authMW(objectRepository),
+	updateTaskMW(objectRepository),
+	renderMW(objectRepository, 'newTask')
+);
+
+app.use('/tasks/:taskid/delete',
+	authMW(objectRepository),
+	getTaskMW(objectRepository),
+	deleteTaskMW(objectRepository),
+	function(req, res, next){
+		return res.redirect('/tasks');
+	}
+);
+```
+
+ahol a middleware-ek közötti sorrendfüggőség erős:
+
+* `authMW` elleőrzi, hogy be van-e lépve a user (paraméter feloldás, adatbázis művelet)
+* `updateTaskMW` frissíti a modell-t (adatbázis művelet)
+* `rederMW` előállítja a HTML-t (megjelenítés)
+* `getTaskMW` adatbázisból az entitás kivétele (aszinkron), de ha nincs ilyen entitás, a user másik oldalra történő átirányítása megtörténik
+* `deleteTaskMW` törlés (aszinkron), nem kell ellenőrizni az entitás meglétét, mert a sorrend garantálja
+
+
+```
+app.use('/login',
+	inverseAuthMW(objectRepository),
+	checkUserLoginMW(objectRepository),
+	renderMW(objectRepository, 'login')
+);
+
+app.use('/logout',
+	logoutMW(objectRepository),
+	function(req, res, next){
+		res.redirect('/');
+	}
+);
+```
+
+* `inverseAuthMW` ha user be van lépve, nem engedi tovább
+* `checkUserLoginMW` megnézi, hogy a user a megadott adatok alapján tud-e authentikálni, ha igen, akkor átirányít
+* `renderMW` csak akkor jeleníti meg a login formot, ha a megelőző lépésben nem sikerült az authentikáció
+* `function()` inline middleware
+
+```
+app.use('/comment/:taskid/:commentid/edit',
+	authMW(objectRepository),
+	getTaskMW(objectRepository),
+	getCommentMW(objectRepository),
+	onlyMyCommentMW(objectRepository),
+	updatekMW(objectRepository),
+	renderMW(objectRepository, 'commentmod')
+);
+```
+
+Csak a felhasználó által lérehozott tartalom módosítása:
+
+* `authMW` be van-e lépve a user
+* `getTaskMW` taszk betöltése
+* `getCommentMW` comment betöltése ami az adott taszkhoz tatozik
+* `onlyMyCommentMW` egy darab _if_, mely ellenőrzi, hogy a bejelentkezett user volt-e a szerzője az adott entitásnak
+* `updatekMW` app.use() miatt _GET_ esetében csak `next()`-et hív, mivel nem kell semmit csinálni, ha csak az új adatok megadásához kell csak form-ot rajzolni, _POST_ esetében viszont frissíti az adott entitást, utána átirányítja a usert
+* `renderMW`
+
+```
+var requireOption = require('../common').requireOption;
+
+/**
+* Get comment for the command param
+*  - if there is no such task, redirect to /task/:taskid
+*  - if there is one, put it on res.tpl.comment
+*/
+module.exports = function (objectrepository) {
+
+	var commentModel = requireOption(objectrepository, 'commentModel');
+
+	return function (req, res, next) {
+		commentModel.findOne({
+			_id: req.param('commentid')
+		}, function (err, result) {
+			if ((err) || (!result)) {
+				return res.redirect('/task/' + req.param('taskid'));
+			}
+			res.tpl.comment = result;
+			return next();
+		});
+	};
+};
+```
+
+* aszinkron modell keresés
+* ha nincs meg az adott komment, akkor átirányítás
+* ha megtalálta a kommentet, akkor egy belső változóra fűzi fel
+	* így ha egy MW ezt esetleg később törölni akarná, az ugyanezen a belső változón egy remove metódust meghívva megtehetné ezt: `res.tpl.comment.remove`
+
+```
+var requireOption = require('../common').requireOption;
+
+/**
+ * Delete comment
+ */
+module.exports = function (objectrepository) {
+
+	return function (req, res, next) {
+		if (typeof res.tpl.comment === 'undefined') {
+			return next();
+		}
+		res.tpl.comment.remove(function (err) {
+			if (err) {
+				return next(err);
+			}
+			return next();
+		});
+	};
+};
+```
+
+A két aszinkron kívás így lett szétszedve és két különböző helyen újra felhasználva.
+
+Minden MiddleWare 3 paramétert kap: __reqquest__, __response__, __next__.
+Kivéve a default error handler, melynek van egy negyedik: __error__.
+
+### RequestObject
+
+* __req.body.<valtozo>__
+* __req.params.<valzozo>__
+* __req.query.<valtozo>__
+* __req.param('valtozo')__ univerzális a params, body, query kiváltója, de deprecated
+
+A __RequestObject__ tartalmazza a böngészőtől a szerver irányába jövő kérés főbb paramétereit.
+
+```
+<form method="POST">
+	<input type="text" name="username" />
+</form>
+```
+
+Egy form-tól érkező információt mindig validálni kell, mivel kliens oldalról bármilyen információ küldhető. Nem kell encoding-gal foglalkozni, változóként jelen lesz az érték.
+
+```
+app.post('/login', function(req, res, next){
+	if (typeof req.body.username != 'undefined'){
+		console.log('Username: ' + req.body.username);
+	}
+	next();
+});
+```
+
+POST parse-olásához külső modul: __body-parser__
+
+```
+var express = require('express');
+var app = express();
+var bodyParser = require('body-parser');
+
+app.use(bodyParser.urlencoded());
+app.use(bodyParser.json());
+
+app.post('/', function(req, res, next){
+	console.log(req.body.username);
+});
+
+var server = app.listen(3000, function () {});
+```
+
+Az `bodyParser.<fuggveny>()` visszaad egy callback-et és egy route-ra feliratkozást, első middleware-ként feliratkozva a route-ra. 
+Ezáltal a __req.body.<valtozo>__ tartalma elérhető, amennyiben POST metóduson keresztül értelmezésre kerül kliens oldalról.
+
+```
+app.get('/user/:userid', function(req, res, next){
+	console.log('ez a userid: ' + req.params.userid);
+	res.end();
+});
+```
+
+GET esetében __req.params.<valzozo>__-ban érhetők el az értékek. 
+
+```
+/shoes?order=desc&shoe[type]=converse
+```
+
+```
+app.get('/shoes', function(req, res, next){
+	console.log('Order: ' + req.query.order);
+	console.log('Order: ' + req.query.shoe.type);
+	res.end();
+});
+```
+
+GET paraméter esetében (? utáni rész az URL-ben) a __req.query.<valtozo>__ object-ben érhetők el az értékek.
+
+```
+app.get('/user/:userid', function(req, res, next){
+	console.log('ez a userid: ' + req.param('userid');
+	res.end();
+});
+```
+A __req.param('valtozo')__ használata kerülendő. Csak akkor használandó, ha mindhárom irányból érkező kérés értelmezhető. __Fontos:__ egy támadó által egyszerűen megváltoztatható a jelszó egy URL-en keresztül, ha ez a függvény kezeli.
+
+### ResponseObject
+
+* __res.send()__ defaultból HTML-t küld
+* __res.set()__
+* __res.end()__
+* __res.status().end()__
+* __res.redirect()__
+* __res.json()__
+* __res.render()__
+
+A __ResponseObject__ tartalmazza a szervertől a böngésző irányába menő választ.
+
+```
+app.get('/user/:userid', function(req, res, next){
+	res.status(404).end();
+});
+```
+
+HTTP status kódok megadhatók a `status()` segítségével. Láncolható fügvény.
+
+```
+app.get('/user/:userid', function(req, res, next){
+	res.redirect('/login');
+});
+```
+
+Átirányítás `redirect()` függvénnyel a HTTP header-ön keresztül. Véget ér a middleware lánc (kivéve ha `next()` hívás történik, ami nem szerencsés) és jön egy az átirányított oldalra történő hívás. A `redirect()` bárhova képes átirányítani ha nem `/`-el kezdődő aloldal van megadva.
+
+```
+app.get('/user/:userid', function(req, res, next){
+	res.json({
+		key: 'value'
+	});
+});
+```
+
+A `res.send(json.stringify())` kiváltására szolgáló, JSON-t visszaküldő megoldás. Helyette bármilyen object-et beírva a függvény törzsébe, JSON-né alakítja, még a header-t is beállítja.
+
+```
+app.get('/user/:userid', function(req, res, next){
+	res.send('Lorem ipsum');
+});
+```
+
+Default-ból HTML, de ha content típust is kell állítani: `res.set('Content-Type', 'text/html');`. Minden adattípust támogat, pl. `'text/plain'`, `'image/png'` etc. A `send()` buffert is elfogad, bináris adatot is le tud küldeni, de erre van egyszerűbb megoldás is.
+
+```
+app.get('/user/:userid', function(req, res, next){
+	res.end('Üzenet - őűáéüóöí', 'utf8');
+});
+```
+
+Egy lépésben küld üzenetet és zárja a kapcsolatot. Két paramétere a data és az encoding.
+
+```
+app.get('/user/:userid', function(req, res, next){
+	res.render('userpate', {
+		username: 'the name',
+		newparameter: ['boo', 'boo2'] 
+	});
+});
+```
+
+Express-ben nincs __templating engine__, de lehetőséget ajánl ki bármilyen templating engine-nek a csatlakozáshoz a `render()`-en keresztül. Első paraméter a template neve. Templating engine dolga, hogy tudja, milyen könyvtárban vannak a template-ek, `.tpl`, vagy `.ejs` fűzendő a megadott névhez. Második paraméter a template-ekbe leküldött változók object-je.
+
+### Templating
+
+Az EJS egy HTML alapú templating nyelv, pár egyszerű művelettel.
+
+```
+npm install ejs --save
+```
+
+```
+app.set('view engine', 'ejs');
+```
+
+### Static modul
+
+Könyvtár kiajánlása adott route-on statikus tartalomként. Express modul része. Képek, CSS, kliens oldali JS kiszolgálására érdemes használni.
+
+```
+app.use(express.static('static'));
+```
+
+vagy
+
+```
+app.use('/static', express.static('static'));
+```
+
+Az előbbi változat esetében ha nincs olyan fájl, megpróbálja dinamikusan értelmezni, ha van, akkor azt visszaküldi. Az utóbbi esetében nem keveredik össze a statikus és dinamikus tartalom. 
+
+### Session modul
+
+A session egy böngéső session szintű szerver oldali oldalbetöltések közötti perzisztens tároló. A weboldal első látogatásánál egy cookie-t tárol le, mely tartalmaz egy egyedi azonosítót, melyet szervernek küldött kéréshez csatolva az tud a kliensről adatot tárolni. A user nem fér hozzá a sesion adataihoz, csak az azonosítójához. A modul neve: __express-session__
+
+```
+var session = require('express-session');
+app.use(session({
+	secret: 'keyboard cat',
+	resave: 'false',
+	saveUninitialized: true
+}));
+```
+
+A __req.session__ objektum a session szinten megtartja a tartalmát. Alapbeállítás szerint a memóriában tárolódik, így a NodeJS újraindulásakor elveszlik a tartalma. Alternatívák: redis, memcached, fájl alapú tárolás. 
+
+### Biztonság
+
+Biztonsági modul, mely segít az express alkalmazások biztonságosabbá tételéhez. A modul neve: __helmet__
+
+```
+var express = require('express');
+var helmet = require('helmet');
+
+var app = express();
+
+app.use(helmet());
+```
+
+### Implementációs részletek
+
+```
+app.use(session({
+	secret: 'keyboard cat',
+	cookie: {
+		maxAge: 60000
+	},
+	resave: 'false',
+	saveUninitialized: false
+}));
+```
+
+```
+app.use(bodyParser.urlEncoded({
+	extended: true
+}));
+```
+
+Általános, mindegyik middleware-re feliratkoztatott függvény:
+
+```
+app.use(function (req, res, next){
+	res.tpl = {};
+	res.tpl.error = [];
+	return next();
+});
+```
+
+A mesterségesen létrehozott __res.tpl.<valtozo>__ a middleware-ek közötti adatcserére szolgál. A middleware-ek erre az objektumra fűzik fel az adataikat.
+
+A response és request object kiterjesztésére, melyek csak egy HTTP hívás kiszolgálása alatt él csak. HTTP hívások között nem őrződnek meg a request és repsonse objectek. A hívások közötti tárolásra session-ök használandók. A `return next();` miatt miután a middleware lánc lefut, a `return` miatt nem folytatódik a futás az aszinkron `next()` utáni sorban. A `return` elvágja a futást, így a régen lefuttatott middleware nem fut újra.
+
+```
+require('./routes/abc')(app);
+// vs. 
+var obj = require('./routes/abc');
+obj(app);
+
+// ha a modulban:
+modul.exports = function(app){
+	...
+	app.get(...);
+	app.use(...);
+}
+```
+
+Nem szerepel kétszer egyik route sem (bár lehetne), de tisztább a kód, ha egy adott route-ra egy helyen iratkozik fel az összes middleware. A middleware-eket külön fájlba érdemes kiszervezni.
+
+```
+var authMW = require('../middleware/generic/auth');
+```
+
+Egy middleware visszaad egy function-t, ami nem fut le, csak visszaadásra kerül:
+
+```
+module.exports = function(...) {
+
+	...
+	return function(req, res, next){
+
+		if (conditions){
+			return next();
+		}
+	}
+};
+```
+
+Ha a feltétel teljesül (pl. adat/paraméter undefined), akkor a teljes middleware nem csinál semmit, csak meghívja a `return next()`-et. Ez akkor fontos, hogy ha pl. egy GET-et és egy POST-ot egy middleware-el akarunk egyszerre kezelni egy update taszkkal, akkor 3 lépésben 3 middlewarrel megtehető: betöltő MW, update-elő MW, renderelő MW. Az update pedig üresesen kell lefusson, ha a user csak megtekinti a formot és nem volt módosítás. Ha nincsenek POST paraméterek, a `next()`-el a következő MW kirendereli a formot. Ha léteznek, végrehajtódik a logika és csak hiba esetén hívódik a next(), egyébként egy redirect történik (pl. middleware/task/updateTask.js és middleware/task/changeState.js).
+
+```
+app.use('/tasks',
+	authMW(objectRepository),
+	getTaskListMW(objectRepository),
+	renderMW(objectRepository, 'tasks')
+);
+```
+
+A `renderMW` feladata, hogy a templating engine-nek átadja a többi middleware által beállított értékeket.
+
+```
+module.exports = function (objectRepository, viewName){
+	return function (req, res){
+		res.render(viewName, res.tpl);
+	};
+};
+```
+
+A scoping és closure miatt a `viewName` egy előre definiált konstans lesz, így az legyártott függvénybe bele lesz égetve a template neve, mely a fenti példában a második paramétereként kerül átadásra, mely a template file nevét határozza meg.
+
+A fenti példában a templating engine az átadott adatokból és a template nevéből generálja a HTML kódot. Nincs HTML string összeállítás, konvertálás, template-be illesztés stb.
+Ha a taszklistázást egy REST-es API-ba szeretnénk kiajánlani, akkor elég a `renderMW(...)` middleware-t kivenni és helyébe egy olyat tenni, amely a `response.json()`-ra ráhívva a `res.tpl`-t átadja neki (nem jár kód módosítással).
+
+### Projekt felépítése:
+
+* modell
+* route-ok (controller)
+	* middleware lista
+* view (REST-es API esetén hiányzik)
+	* templating engine
+	* változók
+* middleware-k
+* statikus fájlok
+
+### Object Repository
+
+JS-ben a legtöbb hiba csak akkor derül ki, ha a kód ráfut a sorra. 
+Az __Object Repository__ egy kulcs-értékeket tároló, melyre általánosan használt modeleket rárakva a middleware-ek az általuk definiált  függvény kiajánlása előtt ellenőrzik, hogy az object repository-ban létezik-e az adott elem.
+
+
+Routing:
+
+```
+var userModel = require('../models/user');
+...
+module.exports = function(app){
+	var objectRepository = {
+		userModel: userModel
+	};
+	...
+	app.use('/login',
+		inverseAuthMW(objectRepository),
+		checkUserLoginMW(objectRepository),
+		renderMW(objectRepository, 'login')
+	);
+}
+```
+
+Middleware:
+
+```
+var requireOption = require('../common').requireOption;
+
+module.exports = function(objectRepository){
+
+	// ellenőrzi a 'userModel' kulcs meglétét az objektumon, exception-t dobva ha nincs
+	var userModel = requireOption(objectRepository, 'userModel');
+	...
+	return function (req, res, next) {
+		...
+		userModel.findOne({...}, function(err, result){...});
+	}
+};
+```
+
+A függvény létrehozása előtt megbizonyosodik arról, hogy rendelkezésre álljon az érték, ha egyszer rá akar majd hívni a kód. Teszteléshez ugyanúgy hasznos,  ugyanis ha a függveny előtt történne a require (nem pedig benne), akkor az adatbázis annyira be lenne égetve a fájlba, hogy adatbázis nélkül nem lenne tesztelhető a működés. Object repository esetében mock adatokat/függvényt lehet az object-re fűzni, amivel a `findOne()` metódus működése mockolható.
+
+Teszt:
+
+```
+var fakeUserModel = {
+	findOne: function (some, cb){
+		nehivd = true;
+		cb();
+	}
+};
+...
+getUserRegistrationMW({
+	userModel: fakeUserModel
+})({}, {}, function (err) {
+	expect(nehivd).to.be.eql(false);
+	expect(err).to.be.eql(undefined);
+	done();
+} );
+```
+
+A mockolt függvények (pl. `findOne`) szintaktikaliag úgy néznek ki mint az eredeti, de az eredetivel ellentétben nem csinálnak semmit (pl. nem hívnak adatbázist), viszont cserébe hívhatók a teszt által (és előre beállított visszatérési értéket adhatnak).
+
+A MW (pl. `getUserRegistrationMW`) létrehozható úgy, hogy az object repository-t kívülről adható egy mockolt object-tel, hogy az már nem fog adatbázist hívni.
+
+
+## 6. Gyakorlat - Express gyakorlat (2017)
+
+https://www.youtube.com/watch?v=3ZMtr4tNEEQ
+

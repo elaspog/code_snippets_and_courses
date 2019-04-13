@@ -1481,7 +1481,7 @@ Ha a taszklistázást egy REST-es API-ba szeretnénk kiajánlani, akkor elég a 
 
 ### Projekt felépítése:
 
-* modell
+* model
 * route-ok (controller)
 	* middleware lista
 * view (REST-es API esetén hiányzik)
@@ -1560,4 +1560,196 @@ A MW (pl. `getUserRegistrationMW`) létrehozható úgy, hogy az object repositor
 ## 6. Gyakorlat - Express gyakorlat (2017)
 
 https://www.youtube.com/watch?v=3ZMtr4tNEEQ
+
+A routing sorrend számít. Ha `/sandwiches/:id` a részletes nézet, akkor a lenti sorrend szerint betölthető a sandwich részletes nézete úgy, hogy `id=add` vagy `id=delete` lesz:
+
+```
+/sandwiches/:id
+/sandwiches/add
+/sandwiches/delete
+```
+
+__Megoldás 1:__ `add` vagy `delete` id-val rendelkező sandwich nem lehet, mivel a sorrend miatt ezek az értékek az id-ba sosem fognak leérkezni:
+
+```
+/sandwiches/add
+/sandwiches/delete
+/sandwiches/:id
+```
+
+__Megoldás 2:__ előtagok eltérjenek egymástól, külön route bevezetése, pl. `details`
+
+```
+/sandwiches/details/:id
+/sandwiches/add
+/sandwiches/delete
+```
+
+__Megjegyzés:__ GET futhat be a hozzáadásnál (mivel egy form kerül megtekintésre) és a már meglevők részletes nézeténél is.
+
+__Fontos:__ oda kell figyelni, hogy az express-es routing táblába, milyen sorrendben kerülnek felvételre a route-ok (ugyanis mindegyik route végén van egy mindenre illeszkedő __/*__, __/sandwiches*__ etc.)
+
+Egy helyes sorrend:
+
+```
+/sandwiches/add*
+/sandwiches/del/:id*
+/sandwiches/mod/:id*
+/sandwiches*
+/*
+```
+
+__Fontos:__ a screen-ek száma nem feltétlenül egyezim meg az endpoint-ok számával.
+
+Egy REST API:
+
+```
+GET + POST: /sandwiches/add       - szendvics hozzaad
+GET       : /sandwiches/del/:id   - szendvics torol (!!!nem biztonságos!!!)
+GET + POST: /sandwiches/mod/:id   - szendvics modosit/reszletez
+GET       : /sandwiches           - lista
+GET + POST: /ingre/add            - hozzavalo hozzaad
+GET       : /ingre/del/:id        - szendvics modosit/reszletez
+GET       : /ingre                - lista
+POST      : /calc/result          - hozzavalo
+GET       : /calc
+GET + POST: /login
+GET       : /logout
+GET       : /                     - fooldal
+```
+
+__Fontos__: A `GET : /sandwiches/del/:id` nem biztonságos: __CSRF__.
+
+
+Ha a `next()`-nek bárhol hiba kerül átadásra, kihagyja a middleware összes többi lépését, és átugrik a hibakezelőre:
+
+```
+next(err);
+```
+
+```
+app.use(function(err, req, res, next){
+	res.status(500).send('Houston, we have a problem!');
+	console.error(err.stack);
+});
+```
+
+Hibakezeléshez használatos middleware-t nem szabad middleware láncra fűzni. Pontosan egyet szabad létrehozni.
+
+(példa 1)
+
+__Megjegyzés:__ Express JS dokumentációból érdemes tudni:
+
+* hogyan érdemes a routingokat megcsinálni
+* static-ot beállítani
+* a 404-es hibát elkapni
+* hibát kezelni
+* etc.
+
+routes könyvtár:
+
+* létrehozni a middleware-eket
+	* nem inline, hanem különböző function-ökbe kiszervezés
+* object repository készítése
+	* ez lényegében dependency injection
+* model-ek létrehozása
+* route-okra feliratkozás és definíció
+
+(példa 2) - alkalmazás felbontása logikailag különböző route-okra
+
+`renderMW`:
+
+- middleware-ek kaphassanak kívülről is paramétert
+- a closure scoping miatt nem változik meg az átadott paraméter a lefutás során
+
+__Fontos__: hogy ne csak futás időben derüljenek ki a problémák (hiszen require esetén nem futnak le, csak egy function-re mutató pointer jön vissza), ezért a middleware-eket célszerű az elején létrehozni
+
+(példa 3) - tesztelhető endpointok
+
+```
+localhost:3000/sandwiches
+localhost:3000/sandwiches/add
+localhost:3000/sandwiches/del/234
+```
+
+__Megjegyzés:__ a jelenlegi verzióban a route-ok úgy tűnik, hogy az egyes route-ok sorrendfüggősége nem számít.
+
+A megfelelő teszthez érdemes ki__mock__olni a megfelelő tagfüggvényeket és tagváltozókat, hogy a modulok/függvények stb. tesztje adatbázistól, böngészőtől stb. független legyen. Csak azt érdemes mockolni, amire a kód rá is hív.
+
+(példa 4) - mockolt `end()` függvény a `res` objecten, a `render.js`-ben levő `db` reprezentálja az adatbázis kapcsolatot.
+
+__Kérdés:__ hogyan lehet kimockolni a `db` által visszaadott adatokat (pl. ez esetben: `minden`)?
+
+__Válasz:__ az __object repository__ mint köztes objektum, amelynek `db` kulcsa az adatbázis objektumot tárolja, amivel a műveleteket végre lehet hajtani.
+
+(példa 5) - a middleware leválasztva az alkalmazás többi részéről
+
+Az __objectRepository__ból kiszedhetők a működéshez szükséges dolgok, teszteléshez pedig tetszés szerint mockolhatók ezek, így nincs szükség tényleges adatbázisra, külső API-ra stb. Ez __Dependency Injection__ jellegű megoldás, itt nem annotációval történik, de vannak erre library-k, kiegészítések, Babel is össze tud require-elni, WebPack-el kliens oldalon stb.
+
+__Fontos:__ az a kódrészlet, amely a routinghoz a middleware láncokat és útvonalakat fűzi, az alkalmazás indulásakor fut le. Ezért a middleware-ekben érdemes ellenőrizni, hogy az objectRepository-ban megérkezik-e a szükséges adat. Ezért már az alkalmazás indításakor kiderül, hogy sikerült-e jól összedrótozni a middlware-eket az objectRepository-val.
+
+```
+function requireOption(objectRepository, propertyName){
+	if (objectRepository && objectRepository[propertyName]){
+		return objectRepository[propertyName];
+	}
+	throw new TypeError(propertyName + ' required');
+}
+
+module.exports.requireOption = requireOption;
+```
+
+(példa 6) - a nem jól felépített struktúra már indulás időben kiderül.
+
+```
+node test.js
+node index.js
+```
+
+__Fontos:__ érdemes okosan megtervezni a middleware-eket úgy, hogy újra felhasználják a megelőző middleware-ek által előállított információt. Amire a middleware épít, azokat vagy akkor ellenőrzi mikor betölti őket, vagy futás időben. Nem feltétlenül kell megakaszani egy middleware-t, mert olyan funkcionalitás fut rajta végig, ami őt nem érinti.
+
+(példa 7)
+
+__Fontos:__ a hibát nem feltétlenül a keletkezés helyen érdemes kezelni, sokszor elég hagyni, de miután a vezérlés végigfolyt a middleware lánc egy részén, a hivatkozott objektumok megléte/hiánya aszerint befolyásolja a vezérlést.
+
+```
+app.get('/sandwiches/mod/:id',
+	authMW(objrep),
+	loadSandwich(objrep),
+	renderMW(objrep, 'smod'));
+
+app.post('/sandwiches/mod/:id',
+	authMW(objrep),
+	// res.tpl.sw = ...
+	loadSandwich(objrep),
+	// megnezi h letezik-e, ha nem létrehozza res.tpl.sw = {}
+	// ellenőrzések
+	checkSandwichDataMW(objrep),
+	// res.tpl.sw.save()
+	saveSandwich(objrep));
+```
+
+helyett, lehetne akár nem külön GET+POST-ra szétbontva:
+
+```
+app.use('/sandwiches/mod/:id',
+	authMW(objrep),
+	loadSandwich(objrep),
+	checkSandwichDataMW(objrep),
+	saveSandwich(objrep),
+	renderMW(objrep, 'smod'));
+```
+
+feltéve, ha `checkSandwichDataMW` és `saveSandwich` ellenőrzi azt, hogy POST-ban érkezett-e adat, de ha nem, akkor módosítás nélkül keresztül engedi magán.
+
+__Megjegyzés:__ az átirányítások általában a MW lánc utolsó lépése szokott lenni.
+
+Tipikus middleware felépítés:
+
+* adat ellenőrzés
+	* vagy hiba: next(err)
+	* vagy továbbenged: next()
+* művelet
+	* ha hiba: next(err)
+* next / átirányítás
 

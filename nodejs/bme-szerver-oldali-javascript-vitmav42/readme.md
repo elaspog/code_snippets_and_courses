@@ -1753,3 +1753,484 @@ Tipikus middleware felépítés:
 	* ha hiba: next(err)
 * next / átirányítás
 
+## 7. Előadás - promise, async, error first callback, gulp (2017)
+
+https://www.youtube.com/watch?v=_xOGnt6iVpw
+
+Callback hell könnyen ki tud alakulni, pl.:
+
+* fájl megnyitás
+* fájlba írás
+* fájl bezárás
+
+mivel mindet aszinkron módon kellene végrehajtani.
+Ehhez kellhet hibakezelés, rollback stb.
+
+```
+// Hibás kód
+mudule.exports = function (objectrepository) {
+	return function (req, res, next) {
+		userMode.findOne({}, function (err, results){
+			res.tpl.users = results;
+			return next();
+		});
+		return next();
+	};
+};
+```
+
+Sokszor nem tudható, hogy a meghívot függvény / API szinkron vagy aszinkron. Nem tudható, hogy a fenti példában a callback fut-e le előbb, vagy az aszinkron kód utáni rész. Előfordulhat, hogy a callback egyáltalán nem fut le, mert hibásan lett implementálva. Ráadásul exception kezelés még nincs megvalósítva. __Hiba:__ a `next();` kétszer kerül meghívásra.
+
+__Fájl beolvasás:__
+
+```
+fs.readFile('config.json',
+	function (error, text){
+		if (error) {
+			console.error('Error while reading config file');
+		} else {
+			try {
+				var obj = JSON.parse(text);
+				console.log(JSON.stringify(obj, null, 4));
+			} catch (e) {
+				console.error('Invalid JSON in file.');
+			}
+		}
+	});
+```
+
+Fájl megnyitás -> írás -> lezárás:
+
+* 3 error ág
+* 3 egymásba ágyazott sikerességi ág
+
+Nehéz tesztelni.
+
+```
+readFilePromisified('config.json')
+	.then(JSON.parse)
+	.then(function (obj){
+		console.log(JSON.stringify(obj, null, 4));
+	})
+	.catch(function (reason) {
+		console.error('An error occured', reason);
+	});
+```
+
+### Promise
+
+ES6-ban natív nyelvi elem, bár vannak külső Promise library-k is. Osztályba furkolt függvény, ami az állapotváltását láncolható módon tájékoztatja a rá feliratkozókat.
+
+```
+var promise = new Promise(
+	function (resolve, reject){
+		...
+		if (...){
+			resolve(value);
+		} else {
+			reject(reason);
+		}
+	});
+promise
+.then(
+	function(a){console.log("Resolve:" + a);},
+	function(b){console.log("Reject :" + b);})
+.catch(function(e){console.error(e);});
+```
+
+Minden promise egy `resolve` és `reject` callback-et vár. Ha egyik sincs meghívva, akkor a végtelenségig vár. A `then` egy láncolható objektumot ad vissza. A dobott kivételek lekezelhetők, melyek a `reject` ágra kerülnek. Ha nincs `reject` ág a `then`-ben, akkor a `catch`-ig jut el a hibakezelés.
+
+```
+function promiseFV(item){
+	return new Promise(function (resolve, reject){
+		resolve(item+'p');
+	});}
+```
+
+Ha egy függvény promise-t ad vissza, vagy szinkron akkor láncolhatók. Ha bármelyik reject-et hív, megtörik a lánc. Sok then után egyetlen `catch` írása a legvégén letisztultá teszi a hibakezelést (minden egy helyen).
+
+```
+function promiseFV(item){
+	return new Promise(function (resolve, reject){
+		resolve(item+'p');
+	});}
+function normalFV(item) { return item + 'n'; }
+
+promiseFV('1')
+	.then(normalFV)
+	.then(promiseFV)
+	.then(function (item) {return item + '2';})
+	.then(console.log)
+	.catch(function (e){
+		console.log('error' + e);
+	});
+
+// ezt írja ki: 1pnp2
+```
+
+Ha létrejön egy Promise, utána arra szinkron függvények is felfűzhetők.
+Ha egy láncban bárhol hiba dobódik, akkor az az első `catch`-ig fog elérni, így elég egy `catch` is a legvégén, így kevesebb a hibakezelési ág szükséges.
+
+#### Promise.all
+
+Több promise egy várakozásban összefogva - vagy megvárja mindegyik sikerét, vagy az első kudarcot.
+
+```
+var p1 = Promise.resolve(3);	// automatikusan resolve-olt 3
+var p2 = 1337;
+var p3 = new Promise(function(resolve, reject){
+	setTimeout(resolve, 100, "foo");
+});
+
+Promise.all([p1, p2, p3]).then(function(values){
+	console.log(values);	// [3, 1337, "foo"]
+});
+```
+
+Listában megadott promise-ok: konstans, szinkron függvény, aszinkron függvény, resolve(), reject()
+
+Promise library nélkül három aszinkron függvény bevárására módszer: egy tömb adott elemét az aszinkron függvények egyenként állítják, melyek egyben ellenőrzik, hogy a többi elem be van-e állítva. Ha már az összes elem be van állítva, akkor visszahív egy callback-re.
+
+-_Fontos:__ a promise.all()-ban a `catch` ágra futás az első kudarc után történik, a többi nem kerül bevárásra, de futásuk nem is szakad meg. Nem feltételezhető, hogy már az összes lefutott vagy hibára futott, csak az, hogy legalább egy hibára futott.
+
+#### Promise.race
+
+NodeJS erőssége: hogy kevés időt tölt tényleges javascript kód futtatásával az aszinkron hívások miatt. Legtöbb esetben várni kell operációs rendszer szintű hívásokra: adatbázisra, fájlrendszerre, klienstől érkező TCP package-re, kimenő TCP package-re.
+
+Több promise, amelyik gyorsabban befejeződik, az adódik át a then-ben (többi is fut / lefut, nem szakítódik meg)
+
+```
+var p1 = new Promise(function(resolve, reject){
+	setTimeout(resolve, 500, "one");
+});
+var p2 = new Promise(function(resolve, reject){
+	setTimeout(resolve, 500, "two");
+});
+Promise.race([p1, p2]).then(function(values){
+	console.log(value);	// "two"
+	// Both resolve, but p2 is faster
+});
+```
+
+Pl. adatbázis mellett redis-es cache és nem érdekel, hogy melyik adja vissza az adatot.
+
+A Promise.race() sem állítja le az elindított promise-ok futását. Nincsenek szálak, mivel single thread, így nincs mit leállítani, addig fut, míg véget nem ér a függvény és nincs hova visszamenni a callstack-ben.
+
+#### Promise.resolve, Promise.reject
+
+Szinkron function / érték becsomagolása promiseba.
+
+```
+function foo(){
+	return Promise.resolve('alma');
+}
+function bar(){
+	return Promise.reject('alma');
+}
+foo.then(bar).catch(console.log);
+```
+
+Általában promise-ok tesztelésére használatos.
+
+### Async.js
+
+```
+npm i async
+```
+
+#### Async - Each, EachSeries, EachLimit
+
+```
+async.each(arr, iterator, [callback])
+async.eachSeries(arr, iterator, [callback])
+async.eachLimit(arr, limit, iterator, [callback])
+```
+
+Listákon végrehajtott tömeges műveletek, control flow műveletek, általános async műveletek stb.
+
+```
+var lista = [1,2,3];
+async.each(lista, function(item, callback){
+	console.log('Processing: ' + item);
+	setTimeout( function(){
+			console.log('Processing done:' + item);
+			callback(null);
+		}, Match.random() * 1000);
+}, function(err){ console.log('All done'); });	// hiba lekezelés nem elégséges
+// Eredmény:
+//Processing:1
+//Processing:2
+//Processing:3
+//Processing done:3
+//Processing done:1
+//Processing done:2
+//All done
+```
+
+Egyszerre elindítja több példányban a függvényt. Az __iterator függvény__ kap egy item-et a tömbből és egy callback-et, mely utóbbi jelzi a sikerességet vagy a sikertelenséget az async library-nek. Az __error first callback__ első paramétere mindig null vagy undefined ha nem történt hiba és bármi más (string, number stb.) ha hiba történt.
+
+each - párhuzamosan hajt végre
+eachSeries - egymás után hajtja végre
+eachLimit - párhuzamosan, de egy időben maximált számossággal
+
+#### Async - Map, MapSeries, MapLimit
+
+```
+async.map(arr, iterator, [callback])
+```
+
+Végrehajtás után visszatér értékekkel.
+
+```
+var lista = [1,2,3];
+async.map(lista, function (item, callback){
+	callback(null, item * item);	// lehet aszinkron hívás
+}, function(err, results){
+	console.log(results);
+});
+// [1, 4, 9]
+```
+
+Az __iterator függvény__ callback-jében vissza lehet adni értéket.
+
+#### Async - Series
+
+```
+async.series(tasks, [callback])
+```
+
+Különböző műveletek lefuttatása egymás után.
+
+```
+async.series([
+	function(callback){
+		callback(null, 'one');
+	},
+	function(callback){
+		callback(null, 'two');
+	}
+],
+function(err, results){
+	console.log(results);
+});
+// Eredmény:
+// ['one', 'two']
+```
+
+Függvény lista megadása után, a callback-ként átadott függvény lefut a listán megadott függvényeken belül.
+
+#### Async - Parallel
+
+```
+async.parallel(tasks, [callback])
+```
+
+Különböző műveletek lefuttatása egyszerre.
+
+```
+async.parallel([
+	function(callback){
+		setTimeout(function(){
+			callback(null, 'one');
+		}, 200);
+	},
+	function(callback){
+		setTimeout(function(){
+			callback(null, 'two');
+		}, 100);
+	}
+],
+function(err, results){
+	console.log(results);
+});
+// Eredmény:
+// ['one', 'two']
+```
+
+Az eredmény összegyűjtve miután mind lefutott.
+
+#### Async - Waterfall
+
+```
+async.waterfall(tasks, [callback])
+```
+
+Olyan series függvény, amely egymás után futtatja le az egyes függvényeket, viszont a callback-ben megadhatók a paraméterek.
+
+```
+async.waterfall([
+	function(callback){
+		callback(null, 'one', 'two');
+	},
+	function(arg1, arg2, callback){
+		// arg1: one, arg2: two
+		callback(null, 'three');
+	},
+	function(arg1, callback){
+		// arg1: three
+		callback(null, 'done', 'done2');
+	}
+],
+function(err, result, result2){
+	console.log(result, result2);
+});
+// Eredmény:
+//done done2
+```
+
+Hibalehetőség: ha elcsúszik a paraméterezés, vagy ha nem `null` a legelső paraméter.
+__Fontos:__ a paraméterek a következők:
+* listában átadott függvényeknél: (argument..., result)
+* végső callback (error first): (error, result...)
+
+### Egyéb
+
+https://github.com/caolan/async
+
+https://caolan.github.io/async
+
+Minden feladatfüggő:
+
+* async
+* promise (promisify)
+* callback
+* sima függvények
+* aszinkron fv
+
+A probléma bonyolultsága határozza meg, mit érdemes használni.
+
+### Error First Callback
+
+Első paramétere a hiba.
+
+```
+function callback(error, result){
+	...
+}
+```
+
+A legtöbb esetben a node-os core modulok ezt használják hibajelzésre async esetben. Ha az `error` értéke `undefined` vagy `null` akkor nincs hiba jelzés, ha pedig bool-lá tud konvertálódni úgy, hogy akkor igaz, ha hiba keletkezett, akkor az egy hiba jelzés.
+
+```
+fs.readFile('/etc/passwd', function(err, data){
+	if (err) throw err;
+	console.log(data);
+});
+```
+
+A __try-catch__ vagy a __throw__ használata ritka, mivel nehéz ránézésre megmondani a kódról, hogy melyik try-catch-be érkezik a kivétel (hacsak nem szinkron függvényen belül van lekezelve). A try-catch-ek felül tudják bírálni egymást, az aszinkronitás miatt máshol tarthat a kód, vagy a scope-ból módosítva lett. A __try-catch__ nyelvi szinten nem létezik, ezért egy __throwable object__ képviseli a kivételt. Emiatt függvényen belül eltéríthető a catch ág egy általunk definiált függvényre.
+
+Az error first callback-et könnyű mockolni/tesztelni is.
+
+### Gulp
+
+Régen az előadásban Grunt volt ehelyett. Webpack-hoz hasonló.
+
+NodeJS-ben nincs build folyamat. Deployment előtt használandó. Sok modulja van. Pl.
+
+* több CSS fájl minify-olva a release-ben, de fejlesztési időben nincs minify-olva
+* képeket feltöltés előtt optimalizálni
+* könyvtárakat kiüríteni, ideiglenes fájlokat törölni
+* stb.
+
+2 része van:
+
+```
+npm i gulp-cli -g	// parancssoron 'gulp' parancs
+npm i gulp --save-dev	// nem szokás a release-be beletenni
+```
+
+`--save-dev`: éles rendszer által nem használt célokra: build, debug, unit test framework stb.
+
+A __gulpfile.js__ fájlban kerülnek a folyamatok leírásra. A folyamatok külön npm modulokban lehetnek.
+
+```
+var gulp = require('gulp');
+var csso = require('gulp-csso');
+gulp.task('default', function(){
+	return gulp.src('./main.css')
+		.pipe(csso())
+		.pipe(gulp.dest('./out'));
+});
+```
+
+A gulp fájl taszkokra bomlik. Pl. `css` taszk indítható a `gulp css` paranccsal. A folyamatok egymás után is írhatók. Egy taszk hivatkozhat más taszkokra. A build folyamat több különálló részből áll.
+
+```
+gulp
+```
+
+Minden modul más és másképp konfigurálandó, paraméterezendő stb.
+Alternatíva: Grunt
+
+#### Gulp-uglify
+
+https://github.com/terinjokes/gulp-uglify
+
+Összefűzi és minify-olja a js-eket
+
+```
+npm install --save-dev gulp-uglify
+```
+
+```
+var uglify = require('gulp-uglify');
+gulp.task('compress', function(){
+	return gulp.src('lib/*.js')
+		.pipe(uglify())
+		.pipe(gulp.dest('dist'));
+});
+```
+
+#### Gulp-csso
+
+https://github.com/ben-eb/gulp-csso
+
+Összefűzi és minify-olja a js-eket
+
+```
+npm install --save-dev gulp-csso
+```
+
+```
+var gulp = require('gulp');
+var csso = require('gulp-csso');
+gulp.task('default', function(){
+	return gulp.src('./main.css')
+		.pipe(csso())
+		.pipe(gulp.dest('./out'));
+});
+```
+
+#### Gulp-concat
+
+https://github.com/contra/gulp-concat
+
+Egymás után fűzi a bejövő fájlokban levő adatokat.
+
+```
+var concat = require('gulp-concat');
+
+gulp.task('scripts', function(){
+	return gulp.src('./lib/*.js')
+		.pipe(concat('all.js'))
+		.pipe(gulp.dest('./dist/'));
+});
+```
+
+#### Egyebek
+
+Feladathoz kell eszközt keresni, nem eszközhöz feladatot.
+
+Tobábbi példák:
+
+* __Gulp watch__ - figyeli a CSS könyvtárat és bármelyik fájl megváltozása után lefuttatja a CSS minify-oló taszkot.
+* Eltérő böngésző gyártók által támogatott feature-öket (--webkit, --o) feloldja a régebbi böngészők számára.
+* A font méretet a képernyő méret függvényében helyezze el a CSS fájlban.
+* S3-ra, vagy CDN-re pusholhat adato
+* statikus asset-eket lehet egyedi fájlnévvel ellátni
+* notification-öket lehet küldeni a gulp-os fordításról
+* typescript-et át lehet írni
+
+Sok csillagot kapott, friss modulokat érdemes használni, mivel vannak szerény minőségűek is.
+

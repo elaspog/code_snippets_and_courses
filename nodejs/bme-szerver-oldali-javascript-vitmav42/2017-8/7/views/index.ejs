@@ -1,0 +1,28 @@
+<% include header %>
+<%= JSON.stringify(macskak) %>
+<table border="1">
+	<tr>
+		<td>id</td>
+		<td>név</td>
+		<td></td>
+		<td></td>
+	</tr>
+	<% macskak.forEach(function(macska){ %>
+		<%- include row -%>
+		<%- include('row',{macska:macska}) -%>
+	<% }) %>
+</table>
+<script>
+	//var macskak1=<%= JSON.stringify(macskak)%>;
+	var macskak2=<%- JSON.stringify(macskak)%>;
+	//var macskak3=JSON.parse("<%= JSON.stringify(macskak)%>");
+	//var macskak4=JSON.parse("<%- JSON.stringify(macskak)%>");
+	$(function () {
+		$("del").click(function (e) {
+			if(!confirm('Biztos-e')){
+				e.preventDefault();
+			}
+		})
+	});
+</script>
+<% include footer %>

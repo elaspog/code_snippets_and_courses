@@ -1,0 +1,32 @@
+<% include header %>
+<% var a=2; -%>
+Loremipsum
+<table border="1">
+	<tr>
+		<td>név</td>
+		<td>cirmose</td>
+		<td>gazdi</td>
+	</tr>
+	<tr>
+		<td>1</td>
+		<td>alma</td>
+		<td><a href="/items/view?id=1">nez</a></td>
+		<td><a class="del" href="/items/del?id=1">Torold</a></td>
+	</tr>
+	<tr>
+		<td>2</td>
+		<td>alma2</td>
+		<td><a href="/items/view?id=2">nez</a></td>
+		<td><a class="del" href="/items/del?id=2">Torold</a></td>
+	</tr>
+</table>
+<script>
+	$(function () {
+		$("del").click(function (e) {
+			if(!confirm('Biztos-e')){
+				e.preventDefault();
+			}
+		})
+	});
+</script>
+<% include footer %>

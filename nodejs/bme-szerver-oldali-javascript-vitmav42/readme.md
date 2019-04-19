@@ -2234,3 +2234,297 @@ Tobábbi példák:
 
 Sok csillagot kapott, friss modulokat érdemes használni, mivel vannak szerény minőségűek is.
 
+## 8. Gyakorlat - Express templating, Webpack  (2017)
+
+https://www.youtube.com/watch?v=wybDQM0nc5Q
+
+### EJS
+
+https://www.npmjs.com/package/ejs
+
+View rész elkészítése, HTML sablon definiálása, HTML generálása változók értékei alapján. Sok templating motor létezik, itt `ejs`. Van kliens oldali, szerver oldali.
+
+#### Templating
+
+```
+npm i ejs --save
+```
+
+EJS rendering engine: egy HTML stringből és bejövő paraméterekből készít egy másik HTML stringet.
+
+#### Express nélkül
+
+```
+var ejs = require('ejs');
+var fs = require('fs');
+var html = ejs.render(fs.readFileSync('valami.ejs','utf8'), {
+	nev:'Lorem ipsum',
+	ertek: 2
+});
+console.log(html);
+```
+
+valami.ejs:
+
+```
+<% if (ertek >= 2) { %>
+	<h2><%= nev %></h2>
+<% } %>
+```
+
+kimenet:
+
+```
+<h2>Lorem ipsum</h2>
+```
+
+#### Express-el
+
+```
+app.set('view engine', 'ejs'); //se require, se semmi
+```
+
+Nem kell require.
+
+```
+function (req, res, next) {
+res.render('valami',{ // nem kell .ejs
+	nev:'Lorem ipsum',
+	ertek: 2
+});
+```
+
+A `response` objecten egy render függvény válik elérhetővé. Leküldi az adatot, beállítja a header-t stb.
+
+#### Tag-ek
+
+Kevés tag van. A tag-ek közé teljes értékű JS kód írható, de itt
+
+* ne legyen komoly logika
+* ne definiáljunk változókat
+* ne hívjunk aszinkron függvényeket
+
+Csakis adatott transzformáljunk adattá, legfeljebb control parancsok (if, for, foreach stb.) kerüljenek ide.
+
+```
+<% valami.javascript.code(); %>
+	ez is htm
+<% if (valami) { %>
+	ez html
+<% } %>
+<% for (key in array) { var item = array[key]; %>
+	<h2><%= item.valami %></h2>
+<% } %>
+```
+
+Az ide írt `console.log()` a NodeJS processébe ír, nem a felhasználónak. Ehelyett változó behelyesítési tag-ek:
+
+```
+Escapelt html (<> karakterek, stb)
+<%= valtozo %>
+Escape nélküli érték
+<%- valtozo %>
+Comment
+<%# ide barmi johet nem csak kod %>
+```
+
+__Fontos__: ha nincs escape-elve a JS kódban a változó, akkor bármilyen JS kódot be lehet injektálni másnak a böngészőjébe. Lehetőleg mindent escape-elve írjunk ki.
+
+#### Include
+
+Másik template beillesztése:
+
+```
+<ul>
+	<% users.forEach(function(user){ %>
+		<%- include('user/show', {user: user}) %>
+	<% }); %>
+</ul>
+```
+
+A `user/show.ejs`-ben csak a `user` változóra limitál a második paraméter. Csak azokat a változókat küldi le így a template-be amelyeket kontrollálunk, azzal a névvel amit választunk. Ha az elhagyásra kerül, akkor mindent megkap a template.
+
+#### Struktúra
+
+Két módszer:
+
+* belülről kifele include-olgatni, a tartalmat hozzá kitölteni
+* nagy layout-ban különböző blokkok létrehozása (külön modullal támogatja), a definiálandó layoutban pedig kitölteni a blokkokba tartalmát
+
+```
+<%- include('header') -%>
+<h1>
+	Title
+</h1>
+<p>
+	My page
+</p>
+<%- include('footer') -%>
+```
+
+#### Egyéb
+
+https://github.com/mde/ejs/blob/master/docs/syntax.md
+
+* browserify, webpack
+* options
+* tag-ek
+* include-ok
+* custom delimiter
+* stb.
+
+Az EJS fájlokat alapértelmezésként minden alkalommal felolvassa a Node (feltéve, ha nincs cache paraméter állítva), így nem kell a Node process-t újraindítani fejlesztési időben a módosítások után.
+
+(példa 1) - statikus HTML kódot tartalmazó template fájl felolvasása, melybeolvas más templaet fájlokat
+
+```
+<table border="1">
+	<tr><td>név</td><td>cirmose</td><td></td><td></td></tr>
+	<%_ valami.foreach(function(item){ _%>
+		<tr>
+			<td><%=item._id%></td>
+			<td><% if (typeof item._gazdi !== 'undefined') {%>
+				<%=item._gazdi.name%>
+			<% } %></td>
+			<td><a href="/items/view?id=<%=item._id%>">nez</a></td>
+			<td><a class="del" href="/items/del?id=<%=item._id%>">Torold</a></td>
+		</tr>
+	<% }) %>
+</table>
+```
+
+(példa 2) - dinamikus adat megjelenítés
+
+__Fontos:__ A fenti példában escapelve van az adat megjelenítése (pl. `<td><%=macska.nev%></td>`), de ha `<%-macska.nev%>` és az input:
+
+```
+var macskak = [
+	{id:1, nev: 'macska', cirmose: true},
+	{id:2, nev: '<script>alert("macska")</script>', cirmose: false}
+];
+```
+
+akkor a code injection megtörténik, ami veszélyforrás.
+
+(példa 3) - code injection példa
+
+* szerver oldali kód (nodejs, express, middleware-ek stb.)
+* kliens oldali kód (alap HTML-be ágyazva)
+* ejs-be tett kód:
+	* include: szerver oldalon értelmeződik
+	* JS script: kliens oldalon fut __(!)__
+
+```
+<script>
+	var macskak=<%- JSON.stringify(macskak)%>;
+	$(function () {
+		$("del").click(function (e) {
+			if(!confirm('Biztos-e')){
+				e.preventDefault();
+			}
+		})
+	});
+</script>
+```
+
+A lenti változó átadás helyett bonyolultabb esetben inkább egy endpoint-ot kellene definiálni, amely az értékeket egy AJAX-os lekérdezéssel JSON-ben visszaadja.
+
+(példa 4) - értékek átadása sablonban
+
+```
+//var macskak1=<%= JSON.stringify(macskak)%>;
+var macskak2=<%- JSON.stringify(macskak)%>;
+//var macskak3=JSON.parse("<%= JSON.stringify(macskak)%>");
+//var macskak4=JSON.parse("<%- JSON.stringify(macskak)%>");
+```
+
+Értékek átadása alsóbbszintű template file-oknak:
+
+```
+<%- include('header', {valtozonev: ertek}) -%>
+```
+
+__Minta:__ vezérlési szerkezetek tabulálása:
+
+```
+if (cond1 != cond2){
+	// kod, pl. callback függvény 
+} else {
+	return;
+}
+```
+
+helyett a feltétel megfordítása:
+
+```
+if (cond1 == cond2){
+	return;
+}
+// kod, pl. callback függvény 
+```
+
+és akkor nem kell tabulálni.
+
+(példa 5) - értékek alapján betöltés, törlés
+
+```
+app.use('/items/del', loadMW, function(req, res, next){
+	res.tpl.macska.delete(function(){
+		next();
+	});
+//	var newmacskak = [];
+//	macskak.forEach(function(item){
+//		if (item.id == req.query.id){
+//			return;
+//		}
+//		newmacskak.push(item);
+//	});
+//	macskak = newmacskak;
+	next();
+}, function(req,res,next){
+	return res.redirect('/');
+});
+```
+
+A fenti példában a kommentezett rész inkább `controller`, a nem kommentezett rész pedig inkább `middleware`, amely kihasználja, hogy a `loadMW` előtte már betöltötte az adatot és ennek eredményére építi a törlést.
+
+(példa 6) - értékek alapján betöltés, törlés, navigálás a részletezőre
+
+```
+// alapértelmezés szerint minden értéket átad
+<%- include row -%>
+```
+
+```
+// csak a felvett értékeket adja át
+<%- include('row',{macska:macska}) -%>
+```
+
+(példa 7) - altemplatere bontás
+
+Értelemszerűen érdemes bontani a template-eket, nem érdemes a közös elemeket a végtelenségig kiemelgetni.
+
+### WebPack
+
+https://webpack.js.org/
+
+Sok függőséget (akár NPM által telepített library-k) összerak egybe. A Webpack megtartja ugyanazt a mudul struktúrát amit a NodeJS is.
+
+Fontos: a video nem tért ki a webpack telepítésre, konfigurálására, így a fenti példákat nem sikerült , a hivatkozott beszélgetés nincs a videok között.
+
+```
+webpack browser.js app.js
+```
+
+(példa 8) - egy függőség, nem kell külső modulokat is becsomagolni
+(példa 9) - több függőség, egymás után fűzi a hivatkozott modulokat
+
+Az `x.html` fájl konzol logján kiérkezik az üzenet. A `marked` és `semver` függvények megtekinthetők. Tapasztalható, hogy hordozhaó a szerver és a kliens között a teljes kód struktúra.
+
+Vannak olyan library-k, amelyeket nem lehet átfordítani, pl. 
+
+* express a file system betöltés miatt
+* ejs az fs modul miatt (de van a weboldalon így használható verzió is)
+
+A `browserify` is képes a teljes express alkalmazást javascript-té alakítani. A `chrome` képes egy socketet publikálni, mellyel így webserver nélkül egy HTML oldalt megtekintve egy `express`-es alkalmazást lehet üzemeltetni. Kifelé már korábban is működött, tehát egy MongoDB szerverhez képes csatlakozni egy szerver oldalról kliens oldalra leforgatott bömgészőben futó JS kód.
+

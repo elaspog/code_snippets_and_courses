@@ -1,0 +1,28 @@
+<% include header %>
+<%= JSON.stringify(macskak) %>
+<table border="1">
+	<tr>
+		<td>id</td>
+		<td>név</td>
+		<td></td>
+		<td></td>
+	</tr>
+	<% macskak.forEach(function(macska){ %>
+		<tr>
+			<td><%=macska.id%></td>
+			<td><%-macska.nev%></td>
+			<td><a href="/items/view?id=<%=macska.id%>">nez</a></td>
+			<td><a class="del" href="/items/del?id=<%=macska.id%>">Torold</a></td>
+		</tr>
+	<% }) %>
+</table>
+<script>
+	$(function () {
+		$("del").click(function (e) {
+			if(!confirm('Biztos-e')){
+				e.preventDefault();
+			}
+		})
+	});
+</script>
+<% include footer %>

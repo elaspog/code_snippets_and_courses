@@ -1,0 +1,10 @@
+<%- include('header') -%>
+<h1><%= macska.nev %></h1>
+<%= macska.id %>
+<% if (macska.cirmose == true) { %>
+cirmos
+<% }else{ %>
+nemcirmos
+<% } %>
+<a href="/">vissza</a>
+<% include footer %>

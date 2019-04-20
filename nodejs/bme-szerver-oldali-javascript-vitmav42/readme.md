@@ -66,6 +66,10 @@ server.listen(port, function() {
 });
 ```
 
+## 2. Gyakorlat - Fejlesztőkörnyezet összerakása (2019) (TODO)
+
+https://www.youtube.com/watch?v=GXpgVmTsM1A
+
 ## 1. Előadás - Bevezetés (2017) (TODO)
 
 https://www.youtube.com/watch?v=tKIn8nAAvRI
@@ -2234,7 +2238,7 @@ Tobábbi példák:
 
 Sok csillagot kapott, friss modulokat érdemes használni, mivel vannak szerény minőségűek is.
 
-## 8. Gyakorlat - Express templating, Webpack  (2017)
+## 8. Gyakorlat - Express templating, Webpack (2017)
 
 https://www.youtube.com/watch?v=wybDQM0nc5Q
 
@@ -2527,4 +2531,383 @@ Vannak olyan library-k, amelyeket nem lehet átfordítani, pl.
 * ejs az fs modul miatt (de van a weboldalon így használható verzió is)
 
 A `browserify` is képes a teljes express alkalmazást javascript-té alakítani. A `chrome` képes egy socketet publikálni, mellyel így webserver nélkül egy HTML oldalt megtekintve egy `express`-es alkalmazást lehet üzemeltetni. Kifelé már korábban is működött, tehát egy MongoDB szerverhez képes csatlakozni egy szerver oldalról kliens oldalra leforgatott bömgészőben futó JS kód.
+
+## 9. Előadás - MongoDB, séma tervezés, performancia kérdések (2017)
+
+MVC - Model-View-Controller
+ORM - Object Relational Mapping
+CRUD - Create, Read, Update, Delete
+NoSQL - Not Only SQL
+
+* Dokumentum adatbázisok (JSON, YAML, XML)
+	* MongoDB
+* Oszlopos (vagy tabulált) adatbázisok
+	* Cassandra
+	* keresési, indexelési, cachelési, elosztott tárolási problémákra megoldás
+* Gráf adatbázisok
+	* Neo4J - nincs online backup
+* Kulcs-érték adatbázisok (vagy Tuple, quad store)
+	* Redis, MemchacheD
+	* tipikusan memória adatbázisok
+* Objektum adatbázisok
+	* OrientDB
+	* ORM típusú működés adatbázis irányába eltolva
+	* modell típusú korlátok, összefüggések objektum szinten kezelhetők
+
+### MongoDB
+
+Dokumentum adatbázis. C++ alapú. A V8-as JS engine-re épül. JSON-t tárol BSON formában. Mongo shellel érkezik, melybe JS kód írandó, mely egy stringet (pl. megírt funtion) képes lefuttatni az adatbázison. Képes szólni az alkalmazásnak, ha az adatbázisban módosult az érték. Pl. a Meteor feliratkozási struktúra az adatbázis eseményekre. 
+
+#### Telepítés
+
+https.//www.mongodb.org/downloads
+https://robomongo.org
+
+__Fontos:__ telepítés után konfigurálandó, mivel alapból nincs benne sem authentikáció, sem egyéb korlátozás, így bárki csatlakozhat.
+
+#### Adatstruktúra
+
+Félis strukturált adatok:
+
+* __adatbázis:__ a hozzáférés és tárolás legmagasabb szintje
+* __collection:__ hasonlít a táblához (inkább egy zsák), azonos típusú dokumentumokat fogja össze, nincs strukturális azonosság megkövetelve, nincs validáció
+* __dokumentum:__ hasonlít egy rekordoz (inkább egy cetli), maga az adat
+	* **BSON**
+	* **_id** a dokumentum azonosítója
+
+#### Műveletek
+
+MongoDB Shell:
+
+##### Beszúrás
+
+`db.collection.insert(document or array of documents, optional_options);`
+
+Object-ben bármi lehet, akár function-ök, object-ek, listák és ezek kombinációja is.
+
+```
+db.inventory.insert(
+	{
+		item: "ABC1",
+		details: {
+			model: "14Q3",
+			manufacturer: "XYZ Company"
+		},
+		stock: [ { size: "S", qty: 25 }, { size: "M", qty: 50 } ],
+		category: "clothing"
+	}
+)
+```
+
+Egy collection-ben különböző kinézetű item-ek tárolhatók.
+
+##### Törlés
+
+`db.collection.remove(query,justOne)`
+
+Mintázat alapján töröl:
+
+```
+db.inventory.remove( { category : "clothing" } )
+```
+
+Az összes collection-ben levő elem törlésre kerül, ahol a feltételkielégül.
+A `justOne` csak egyetlen rekordot töröl.
+
+##### Módosítás
+
+`collection.update(query,update,optional_options);`
+
+Mintázat alapján update-el:
+
+```
+db.inventory.update({ item: "ABC1" },{category: "Food"})
+```
+
+##### Keresés
+
+https://docs.mongodb.com/manual/reference/operator/
+
+`db.collection.find(query, projection)` vagy `db.collection.findOne(query, projection`
+
+```
+db.inventory.find(
+	{
+		type: 'food',
+		$or: [ { qty: { $gt: 100 } }, { price: { $lt: 9.95 } } ]
+	}
+)
+```
+
+__Megjegyzés__: ha nincs kiírva a legfelsőbb szinten, akkor a query-ben **'és'**-ként kell a műveletet értelmezni.
+
+Képes egy query alapján egy item egy listájába elemet beilleszteni is.
+
+#### Collection
+
+Struktúra hasznos lehet:
+
+1. Collectionök közötti kapcsolatok (pl. kutyák és gazdáik)
+2. Típusok / kötöttségek ellenőrzése (lehetséges típusokat rögzíteni)
+3. Indexek létrehozása a gyors keresés miatt
+
+__Fontos:__ ha egy mező nincs kitöltve, azt MongoDB-be ne küldjük le, hogy ne legyen null.
+
+##### Collection közötti kapcsolatok
+
+Az **_id** egy manuális referencia egy másik objektumra, a tagváltozó randomgenerált (timestamp + számjegy), de nem garantáltan future proof, így nem érdemes sorrendezni vele. (Sorrendezéshez: `created` mezőbe `date.now()` pusholása). Bár a MongoDB uniqe-ot generál, de az értéknek nem kötelező egyedinek lennie.
+
+Kézzel létrehozott **_id**:
+
+```
+original_id = ObjectId()
+db.places.insert({
+	"_id": original_id,
+	"name": "Broadway Center",
+	"url": "bc.example.net"
+})
+db.people.insert({
+	"name": "Erin",
+	"places_id": original_id,
+	"url": "bc.example.net/Erin"
+})
+```
+
+A fenti példában az _id mint string hivatkozik a másikra. A driver a saját szintjén oldja fel az **_id**-t (ha a felhasználó vagy a kód ezt kéri), nem pedig a MongoDB. Ha nincs kérve a feloldás, akkor csak egy ID-t kapunk vissza.
+
+A **DBRef** egy explicit kapcsolat két objektum között
+
+```
+db.places.insert({
+"_id" : ObjectId("5126bbf64aed4daf9e2ab771"),
+"name": "Broadway Center",
+"url": "bc.example.net"
+"creator" : {
+	"$ref" : "creators",
+	"$id" : ObjectId("5126bc054aed4daf9e2ab772"),
+	"$db" : "users"
+}
+})
+```
+
+A feloldás itt már MongoDB szinten történik.
+
+__Megjegyzés:__ nem kell listákat vagy objecteket külön helyen tárolni, nem kellenek kapcsoló táblák, join-ok, performancia problémák, mert bár a struktúra nem szép, de cserébe egy helyen vannak.
+
+#### Típusok
+
+Nem erőlteti őket, de ismeri és képes használni. BSON típusain alapul:
+__Double, String, Object, Array, Binary data, Object id, Boolean, Date, Null, Regular Expression, JavaScript, Symbol, JavaScript (with scope), 32-bit integer, Timestamp, 64-bit integer__
+
+A típusok jól jönnek az alábbi műveletek során:
+
+* összehasonlítás
+* sorrendezés
+* aggregáció
+* sharding
+
+__Sharding:__ logikailag egyként látva, fizikailag külön tárolva, driver oldja meg, osztja szét a kéréseket.
+
+__Fontos:__ 
+
+* pl. string-et és int-et besorrendez a mongodb egy `sortby`-ra.
+* típus szintű limitációk a driverek feladata, a MongoDB-t nem érdeklik, bármit bármivé tud konvertálni
+
+#### Index-ek
+
+A collection-ökön belül jönnek létre. A query-k gyorsabbak lesznek. Sharding alapja tud lenni, ez alapján osztható szét az adata egy clusterben.
+
+```
+db.records.createIndex( { userid: 1 } )
+db.products.createIndex( { item: 1, category: 1, price: 1 } )
+db.accounts.createIndex( { "tax-id": 1 }, { unique: true } )
+```
+
+__Fontos:__ a __unique__ csak indexeknél fontos, de valójában bármennyi instance beilleszthető.
+
+### Mongoose
+
+Egy adatbázis driver.
+
+https://www.npmjs.com/package/mongoose
+
+```
+npm install mongoose --save
+```
+
+Adatbázishoz kapcsolódás:
+
+```
+var mongoose = require('mongoose');
+mongoose.connect('mongodb://localhost/test');
+```
+
+Modell létrehozása és adatbázisba mentése:
+
+```
+var Cat = mongoose.model('Cat', { name: String });
+var kitty = new Cat({ name: 'Zildjian' });
+kitty.save(function (err) {
+	console.log('meow');
+});
+```
+
+__Fontos:__ az adatbázis és collection automatikusan létrejön akár egy query-re is (ami math.random()-ra veszélyes lehet). A modell módosítására az adatbázis tartalma nem változik (nincs default érték, mint klasszikus adatbázisnál).
+
+A mongoose az __ODB__ (majdnem ORM) funkciók miatt megköveteli, hogy sémát definiáljunk, hogy le tudja képezni a lekérdezéseket / válaszokat.
+
+__Megjegyzés:__ MongoDB-s adatok kezelésénél sok az `if`-et használó vezérlési szerkezet.
+
+#### Schema
+
+Felelős a validációért, vagy a kiterjesztett műveletekért. Komplex dolgokhoz használandó.
+
+```
+var schema = kittySchema = new Schema({ name: String }));
+schema.method('meow', function () {
+	console.log('meeeeeoooooooooooow');
+})
+var Kitty = mongoose.model('Kitty', schema);
+var fizz = new Kitty;
+fizz.meow();
+```
+
+Lehet `Pre` és `Post` műveleteket definiálni MongoDB-ből kijövő/bemenő adatokkal, transzformációkat megadni.
+
+```
+var schema = new Schema({
+	name: String,
+	binary: Buffer,
+	living: Boolean,
+	updated: { type: Date, default: Date.now },
+	age: { type: Number, min: 18, max: 65 },
+	mixed: Schema.Types.Mixed,
+	_someId: Schema.Types.ObjectId,
+	array: [],
+	ofString: [String],
+	ofNumber: [Number],
+	ofDates: [Date],
+	ofBuffer: [Buffer],
+	ofBoolean: [Boolean],
+	ofMixed: [Schema.Types.Mixed],
+	ofObjectId: [Schema.Types.ObjectId],
+	nested: {
+	stuff: { type: String, lowercase: true, trim: true }
+})
+```
+
+A sémát a driver ellenőrzi.
+
+* Schema.Types.Mixed = bármi
+* Schema.Types.ObjectId = feloldások miatt megkülönböztetve
+* [<type>]: konverzió történik a driver által
+* nested: inline séma definíció
+* ajánlás: külső kulcs típusokat '**_**'-al kezdeni
+
+```
+var Task = db.model('Task', {
+	name: String,
+	state: Number,
+	_assignedTo: {
+		type: Schema.Types.ObjectId,
+		ref: 'User'
+	},
+	likes: [ {ki: String} ]
+});
+```
+
+__Fontos:__ régi mongoose-nál a string összehasonlítása ObjectId-val mindig false.
+
+```
+var Cat = mongoose.model('Cat',
+{
+	name: String
+	_owner: {
+		type: mongoose.Schema.Types.ObjectId,
+		ref: 'Owner'
+	}
+});
+```
+
+A séma előre vagy utólag is definiálható. A `mongoose.Schema.Types.ObjectId` a mongoose npm package-n belül létezik `var Schema = require('mongoose').Schema;`.
+
+##### Létrehozás, módosítás
+
+ Mentéskor a definiált attribútumok kerülnek a MongoDB-ben tárolásra:
+
+```
+var fizz = new Kitty();
+fizz.name = 'Cica';
+fizz.save(function(err){
+	//console.log
+});
+```
+
+A modell alapján létrehozott példány objektumként viselkedik.
+
+##### Törlés
+
+Collection-t definiálja a séma, ezen a `remove(query, callback)` függvénnyel. A törlés aszinkron módon fut le.
+
+```
+Comment.remove({ title: 'baby born from alien father' }, function (err) {
+});
+Comment.remove({ _id: id }).exec();
+```
+
+##### Keresés
+
+http://mongoosejs.com/docs/queries.html
+
+Aszinkron módon fut le.
+Callback helyett Promise-okkal is megvalósítható (`.then()`).
+
+```
+Kitten.find({name : 'Cica'},function (err, cicak) {
+});
+Kitten.findOne({name : 'Cica'},function (err, egycica) {
+});
+```
+
+A `findOne()` csak uniqe dolgok kereséséhez használandó, mert bár mindig ugyanazt találja meg, de nem biztos, hogy az első, utolsó megtalált elemet adja vissza. A keresések más parancsokkal láncolhatók, `where()`, `limit()`, `sort()`, `select()`, `exec()`. Az `exec()` hozza létre a MongoDB-s kérést és a választ parse-olja.
+
+##### Performancia
+
+* Adatstruktura
+	* arra legyen kitalálva, amit az alkalmazás csinál
+	* ne egy collection-be mindent
+	* változatos adatokat lehetőleg külön collection-be
+	* pl. gps-nek 3 fajta kinézte lehet: lehet 2 long, 1 string vagy lokáció neve
+		* legközelebb ha a user belép, bekérni/átkonvertálni az új értéket
+		* ha a legújabb verzió, nincs módosítás
+	* MongoDB jó arra, hogy ne kelljen régi adatokhoz hozzányúlni.
+	* Az adatstruktura váltás nagyon fájdalmas tud lenni.
+* Indexek
+	* ha sok az adat érdemes rátenni
+	* nem annyira fájdalmas módosítani, de tudni kell mi lassú
+* Cache
+	* pl. ha sok kiszámítani valamit
+	* redis, memcached, file stb.
+	* csak kicsit fájdalmas, kevés kódot kell írni
+* Skálázhatóság
+	* pl. memória növelés
+	* egyszerű módosítani
+* Architektura
+	* ne egy docker container vagy virtuális szerver, hanem szétbontva
+	* alkalmazás szerver és adatbázis szerver külön
+	* előre tervezendő
+* Ténylegesen használt eszköz
+	* pl. új fizikai gép
+	* nagyon egyszerű módosítani
+
+#### Profilozás
+
+https://docs.mongodb.org/manual/tutorial/analyze-query-plan/
+
+SQL-es explain-hez hasonló.
+
+```
+db.setProfilingLevel(1)
+query.explain("executionStats")
+```
 

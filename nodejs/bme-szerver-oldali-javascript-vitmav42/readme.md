@@ -7,9 +7,9 @@ https://www.youtube.com/channel/UCG6cDGNzf63pH-x74HGKXNw/videos
 
 https://www.youtube.com/watch?v=x6a5ZpbZufw
 
-https://portal.vik.bme.hu/kepzes/targyak/vitmav42
-https://malna.tmit.bme.hu/vitmav42
-https://tinyurl.com/nodeyoutube
+https://portal.vik.bme.hu/kepzes/targyak/vitmav42  
+https://malna.tmit.bme.hu/vitmav42  
+https://tinyurl.com/nodeyoutube  
 https://github.com/VITMAV42
 
 * CSS, HTML, JS
@@ -1189,7 +1189,7 @@ module.exports = function (objectrepository) {
 
 A két aszinkron kívás így lett szétszedve és két különböző helyen újra felhasználva.
 
-Minden MiddleWare 3 paramétert kap: __reqquest__, __response__, __next__.
+Minden MiddleWare 3 paramétert kap: __request__, __response__, __next__.
 Kivéve a default error handler, melynek van egy negyedik: __error__.
 
 ### RequestObject
@@ -2504,7 +2504,7 @@ A fenti példában a kommentezett rész inkább `controller`, a nem kommentezett
 <%- include('row',{macska:macska}) -%>
 ```
 
-(példa 7) - altemplatere bontás
+(példa 7) - al template-ekre bontás
 
 Értelemszerűen érdemes bontani a template-eket, nem érdemes a közös elemeket a végtelenségig kiemelgetni.
 
@@ -2534,9 +2534,11 @@ A `browserify` is képes a teljes express alkalmazást javascript-té alakítani
 
 ## 9. Előadás - MongoDB, séma tervezés, performancia kérdések (2017)
 
-MVC - Model-View-Controller
-ORM - Object Relational Mapping
-CRUD - Create, Read, Update, Delete
+https://www.youtube.com/watch?v=UkaYwDqoVX4
+
+MVC - Model-View-Controller  
+ORM - Object Relational Mapping  
+CRUD - Create, Read, Update, Delete  
 NoSQL - Not Only SQL
 
 * Dokumentum adatbázisok (JSON, YAML, XML)
@@ -2910,4 +2912,28 @@ SQL-es explain-hez hasonló.
 db.setProfilingLevel(1)
 query.explain("executionStats")
 ```
+
+## 10. Gyakorlat - MongoDB és Express, kliens és szerver oldali kód hordozás (2017) (TODO)
+
+https://www.youtube.com/watch?v=Im0QkTshUGQ
+
+## 11. Előadás - core modulok: http, https, os, fs, events (2017) (TODO)
+
+https://www.youtube.com/watch?v=x3VHEp9r5Ts
+
+## 12. Gyakorlat - core modulok a gyakorlatban (2017) (TODO)
+
+https://www.youtube.com/watch?v=ZCUvghcWGhk
+
+## 13. Előadás - Unit és integrációs tesztek, mocha, assert struktúrák (2017) (TODO)
+
+https://www.youtube.com/watch?v=jbSA5Y9lzkY
+
+## 14. Gyakorlat Tesztelés (2017) (TODO)
+
+https://www.youtube.com/watch?v=NXCqlcz-Gf0
+
+## 12. Gyakorlat - core modulok a gyakorlatban (2016) (TODO)
+
+https://www.youtube.com/watch?v=bxUg6HmYmxI
 

@@ -148,3 +148,26 @@ Types need to be duplicated.
 ### S07/E41 Code Reuse with Interfaces
 
 **annotations/interfaces5.ts**
+
+## S08 Building Functionality with Classes
+
+### S08/E44 Basic Interface
+
+**annotations/classes1.ts**
+
+### S08/E45 Instance Method Modifiers
+
+**annotations/classes2.ts**
+
+Modifiers:
+* public
+* private
+* protected
+
+### S08/E46 Fields in Classes
+
+**annotations/classes3.ts**
+
+### S08/E47 Fields with Inheritance
+
+**annotations/classes4.ts**

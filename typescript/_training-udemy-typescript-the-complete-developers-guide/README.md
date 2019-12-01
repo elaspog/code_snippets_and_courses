@@ -78,3 +78,34 @@ instead of
 ```
 const logTodo = (id, title, completed) => { ... }
 ```
+
+## S02
+
+**features/types.ts**
+
+* Syntax + Features
+* Design Patterns with TS
+
+Types:
+* Primitive types
+  * number
+  * boolean
+  * void
+  * undefined
+  * string
+  * symbol
+  * null
+* Object Types
+  * functions
+  * arrays
+  * classes
+  * objects
+
+## S03
+
+**annotations/variables.ts**
+
+* Type annotations
+* Type inference
+  * Variable Declaration
+  * Variable Initialization

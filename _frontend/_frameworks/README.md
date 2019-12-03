@@ -11,6 +11,7 @@
 * Vue
 * Angular
 * Ember
+* Svelte
 
 ## Frameworks
 

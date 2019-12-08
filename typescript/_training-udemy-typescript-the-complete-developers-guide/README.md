@@ -282,7 +282,67 @@ Useful to prevent other engineers to call methods of the google maps API what ca
 
 ### S09/E62 Why Use Private Modifiers? Here's Why
 
-### S09/E65
+### S09/E65 One Possible Solution
 
 Only common fields can be used if types are given by OR, e.g.: `User | Company`.  
 This solution is hard to extend. When new types need to be used then the existing code should be modified.
+
+### S09/E67 Implicit Type Check
+
+## S10 More on Design Patterns
+
+### S10/E73 Configuring the TS Compiler
+
+**sort/src/index.ts**  
+**sort/build/**
+
+```
+tsc index.ts
+tsc --init
+// edit tsconfig.json
+```
+
+**tsconfig.json**:
+
+```
+"outDir": "./build",
+"rootDir": "./src"
+```
+
+command line:
+
+```
+tsc
+tsc -w  # watch files of root directory
+```
+
+`tsc` command settings in `tsconfig.json`:
+* watch files
+* set root folder
+* set build folder
+* etc
+
+### S10/E74 Concurrent Compilation and Execution
+
+**sort/package.json**
+
+Instead of
+```
+tsc -w
+node build/index.js
+```
+Automate the process:
+```
+npm init -y
+npm install nodemon concurrently
+```
+
+package.json:
+
+```
+  "scripts": {
+    "start:build": "tsc -w",
+    "start:run": "nodemon build/index.js",
+    "start": "concurrently npm:start:*"
+  }
+```

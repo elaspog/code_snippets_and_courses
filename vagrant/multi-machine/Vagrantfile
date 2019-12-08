@@ -1,6 +1,6 @@
 Vagrant.require_version ">= 1.8.0"
 
-# Vorraussetzungen Virtualbox 5.1.28 
+# Vorraussetzungen Virtualbox 5.1.28
 # Set proxy temporarily first and then install vagrant-proxyconf:
 # set http_proxy=http://10.10.10.10:8080
 # set https_proxy=%http_proxy%
@@ -27,7 +27,7 @@ Vagrant.configure(2) do |config|
 
 		control.vm.provider "virtualbox" do |v|
 			v.memory = 8192
-			v.cpus = 4  
+			v.cpus = 4
 		end
 
 		#config.proxy.http = "http://10.10.10.10:8080"
@@ -44,7 +44,7 @@ Vagrant.configure(2) do |config|
 
 		config.vm.synced_folder ".", "/vagrant", type: "virtualbox"
 	end
-	
+
 	config.vm.define "lb01" do |lb01|
 		config.vm.box = "centos/7"
 		#lb01.vm.network "private_network", ip: "10.0.0.201"

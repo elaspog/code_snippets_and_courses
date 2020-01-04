@@ -114,3 +114,63 @@ https://ruby-doc.org/core-2.4.2/
 ### S02/E28 Creating a Draw Method
 
 ** hello.rb **
+
+## S03 Install Ruby on Rails
+
+### S03/E29 Ruby on Rails Overview
+
+### S03/E30 Install Node.js
+
+https://nodejs.org/en/
+
+### S03/E31 Install Sublime and Git Bash Terminal
+
+https://www.sublimetext.com
+
+https://git-scm.com
+
+### S03/E32 Create SSH Key
+
+```
+pwd
+mkdir .ssh
+cd .ssh
+pwd
+ls
+clear
+ssh-keygen.exe
+ls  # id_rsa id_rsa.pub
+```
+
+### S03/E33 Install the Heroku Toolbelt
+
+https://devcenter.heroku.com/articles/heroku-cli
+
+```
+heroku --version
+```
+
+### S03/E34 Install Ruby on Rails
+
+https://rubyonrails.org
+
+http://railsinstaller.org
+
+### S03/E35 Create Test Project and Handle Errors
+
+```
+mkdir railstest
+cd railstest
+rails new tester
+```
+
+if error happens
+```
+gem install bundler
+# in Gemfile:
+# gem 'sqlite3' # uncomment this line
+gem 'sqlite3', '< 1.4'
+
+# in terminal:
+bundle install
+```

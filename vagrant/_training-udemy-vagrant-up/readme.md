@@ -608,3 +608,365 @@ cd
 ## S08 Conclusion
 
 ### S08/E24 Conclusion
+
+### S08/E25 Resources
+
+http://vagrantup.com/
+
+https://github.com/mitchellh/vagrant/wiki/Available-Vagrant-Plugins
+
+https://vagrantcloud.com/
+
+## S09 Bonus! Creating Custom Boxes for Vagrant
+
+### S08/E26 Introduction to Custom Boxes
+
+### S08/E27 Acquire OS Image
+
+*CentOS-7.0-1406-x86_64-Minimal.iso*
+
+https://www.centos.org/download/
+
+```
+md5 ~/Downloads/CentOS-7.0-1406-x86_64-Minimal.iso
+```
+
+### S08/E28 VirtualBox Setup and OS Installation
+
+### S08/E29 Vagrant Customizations, Part 1
+
+```
+# as vagrant user
+sudo yum update -y
+sudo yum install -y nano yum-utils wget
+nano .bash_profile  # add editor
+sudo shutdown -r now
+```
+
+* add editor to .bash_profile:
+```
+export EDITOR=/usr/bin/nano
+```
+
+```
+# as vagrant user
+sudo su -
+export EDITOR=/usr/bin/nano
+visudo  # edit sudo settings
+exit
+exit
+```
+
+* edit sudo settings:
+```
+#Defaults requiretty
+Defaults !requiretty
+#...
+Defaults  env_keep += "SSH_AUTH_SOCK"
+#...
+#%wheel  ALL=(ALL) ALL
+%wheel  ALL=(ALL) NOPASSWD: ALL
+```
+
+```
+# as vagrant user
+sudo which sudo
+clear
+
+cd /etc/ssh
+sudo nano sshd_config # *1
+
+sudo systemctl restart sshd.service
+clear
+
+sudo nano /etc/default/grub # *2
+sudo grub2-mkconfig -o /boot/grub2/grub.cfg
+
+sudo shutdown -r now
+```
+
+* sudo nano sshd_config:
+```
+#Port 22
+#PubkeyAuthentication yes
+#AuthorizedKeysFile  .ssh/authorized_keys
+AuthorizedKeysFile  %h/.ssh/authorized_keys
+UseDNS no
+```
+
+* sudo nano /etc/default/grub
+```
+GRUB_TIMEOUT=1
+```
+
+```
+# as vagrant user
+cd ~
+pwd
+mkdir .ssh
+cd .ssh
+wget --no-check-certificate https://raw.github.com/mitchellh/vagrant/master/keys/vagrant.pub -O authorized_keys
+ls -al
+chmod 0600 authorized_keys
+ls -al
+cd ..
+chmod 0770 .ssh
+clear
+```
+
+### S08/E30 Vagrant Customizations, Part 2
+
+```
+sudo yum update kernel*
+rpm -qa kernel
+sudo package-cleanup --oldkernels --count=2
+clear
+sudo yum install -y kernel-devel kernel-headers dkms gcc gcc-c++ bzip2 make kernel-devel-$(uname -r)
+sudo shutdown -r now
+```
+
+```
+# as vagrant user
+clear
+sudo su -
+mkdir /mnt/cdrom
+mount /dev/cdrom /mnt/cdrom
+cd /mnt/cdrom/
+./VBoxLinuxAdditions.run
+cd ~
+umount /mnt/cdrom
+lsmod | grep vbox
+shutdown -r now
+```
+
+```
+# as vagrant user
+sudo lsmod | grep vbox
+clear
+sudo yum remove kernel-headers gcc make
+sudo shutdown -r now
+```
+
+```
+# as vagrant user
+sudo lsmod | grep vbox
+clear
+sudo dd if=/dev/zero of=/EMPTY bs=1M
+sudo rm -f /EMPTY
+sudo shutdown -h now
+```
+
+```
+# as vagrant user
+ls -al
+chmod 0700 .ssh
+sudo shutdown -h now
+```
+
+### S08/E31 Package and Test
+
+```
+pwd
+cd projects/
+mkdir vagrant-box
+cd vagrant-box
+vagrant box list
+clear
+vagrant package --base vagrant-custon-centos7
+ls
+mv package.box CentOS7-server.box
+ls
+vagrant box add centos7 CentOS7-server.box
+cd ..
+ls
+mkdir centos7-test
+cd centos7-test/
+vagrant box list
+vagrant init centos7
+clear
+ls
+vagrant up
+vagrant ssh
+cd /vagrant/
+cat Vagrantfile
+exit
+vagrant destroy
+cd ..
+rm -rf centos7-test
+```
+
+### S08/E32 Custom Box Conclusion
+
+* Hosting the Box
+  * Network storage (NAS/Shared Folder)
+  * Cloud storage (Dropbox, Drive, AWS)
+  * Online / Website
+  * Vagrant Cloud
+* More Custom Boxes
+  * Vagrant Package
+
+
+* Provisioning
+  * File, Shell
+  * Chef, Puppet, others
+  * Docker
+* Other Operating Systems / Variations
+  * Fedora, Ubuntu, Linux Mint
+* Packer (packer.io)
+  * creates multiple virtual machine images from single configuration file
+
+https://packer.io/
+
+## S10 Bonus! Using the Chef Solo Provisioner
+
+### S10/E33 Introduction to Chef
+
+* Automated Provisioning / Deployment
+* Formerly Opscode
+* Ruby programming language
+* Chef Domain Specific Language
+* Infrastructure as Code
+
+
+* Terminology
+  * Recipes
+    * Ruby + Chef DSL scripts
+      * unit of work defined
+    * task actions
+    * can use supporting scripts
+    * can call other recipes
+    * entry point of a cookbook
+    * default recipe
+  * Templates
+    * embedded Ruby templates
+    * uses "erb" file extension
+    * can contain Ruby and dynamic values
+    * excellent for configuration files
+  * Attributes
+    * settings used in cookbooks
+    * overriding / precedence
+    * customize cookbooks
+  * Cookbooks
+    * collection of
+      * recipes
+      * templates
+      * other supporting files scripts
+    * metadata
+      * name, description
+      * version, dependencies
+  * Roles
+    * group related recipes
+    * outside, unrelated to cookbook
+    * not versioned in chef
+  * Nodes
+    * sytem where recipes execute
+
+
+Chef SOLO vs Client:
+
+* Chef Client
+  * hosted / enterprise
+  * centralized cookbooks
+  * scales
+  * full functionality
+  * cost (not free)
+  * complexty
+* Chef Solo
+  * simpler
+  * sharing?
+  * scale?
+  * reduced functionality
+  * free
+
+### S10/E34 Chef Supermarket and Selecting a Cookbook
+
+https://supermarket.getchef.com/  
+https://supermarket.chef.io/
+
+```
+pwd
+cd vagrant/
+ls
+mkdir chef
+cd chef
+mkdir supermarket
+mkdir cookbooks
+mkdir roles
+cd supermarket
+
+tar -xvzf ~/Downloads/java.tgz
+tar -xvzf ~/Downloads/tomcat_latest.tgz
+cd ..
+pwd
+git add .
+git status
+git commit -m "Adding Chef cookbooks from supermarket"
+git push origin master
+clear
+cd
+vagrant plugin install vagrant-omnibus
+```
+
+### S10/E35 Using the Cookbook with Vagrant
+
+**Vagrantfile**
+
+```
+cd projects/
+vagrant box list
+git init chef-tomcat
+cd chef-tomcat
+echo ".vagrant" >> .gitignore
+vagrant init chef/centos-6.5
+git add .
+git status
+git commit -m "Initial Commit"
+```
+
+in Vagrantfile:
+```
+config.omnibus.chef_version = :latest
+```
+
+```
+vagrant up
+vagrant ssh
+which java
+java --version
+exit
+git status
+git commit -am "Working Chef Solo config"
+
+# add tomcat recipe to Vagrantfile
+vagrant provision
+git commmmit -am "Adding Tomcat latest to Chef Solo config"
+```
+
+* add tomcat recipe to Vagrantfile
+```
+chef.add_recipe "tomcat_latest"
+```
+
+### S10/E36 Evaluation of the Supermarket Cookbook
+
+### S10/E37 Creating a Custom Cookbook - Setup and Metadata
+
+### S10/E38
+
+### S10/E39
+
+### S10/E40
+
+### S10/E41
+
+### S10/E42
+
+### S10/E43
+
+### S10/E44
+
+### S10/E45
+
+## S11 Bonus! Spcial Offers
+
+### S11/E46

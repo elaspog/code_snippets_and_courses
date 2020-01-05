@@ -1,0 +1,36 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+
+  config.vm.box = "chef/centos-6.5"
+
+  config.vbguest.auto_update = false
+  config.vm.provision "file",
+    source: "~/vagrant/files/git-config",
+    destination: "~/.gitconfig"
+  config.vm.provision "shell",
+    path: "https://raw.githubusercontent.com/screencasts-pro/vagrant/master/scripts/centos-common.sh"
+
+  config.omnibus.chef_version = :latest
+
+  config.vm.network "forwarded_port", guest: 8080, host: 8080
+
+  config.vm.provider "virtualbox" do |vb|
+    vb.customize = ["modifyvm", :id, "--memory", "1024"]
+  end
+  
+  config.vm.provision "chef_solo" do |chef|
+    chef.cookbooks_path = "~/vagrant/chef/supermarket"
+    # chef.roles_path = "../my-recipes/roles"
+    chef.add_recipe "java"
+    chef.add_recipe "tomcat_latest"
+    # chef.add_role "web"
+    chef.json = {
+      "java" => {
+        "jdk_version" => "7"
+      }
+    }
+  end
+
+end

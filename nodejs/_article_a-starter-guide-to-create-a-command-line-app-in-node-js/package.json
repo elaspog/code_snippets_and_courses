@@ -1,0 +1,20 @@
+{
+  "name": "a-starter-guide-to-create-a-command-line-app-in-node-js",
+  "version": "1.0.0",
+  "description": "https://dev.to/kumar_abhirup/a-starter-guide-to-create-a-command-line-app-in-node-js-41hn",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "chalk": "^3.0.0",
+    "clear": "^0.1.0",
+    "figlet": "^1.2.4"
+  },
+  "bin": {
+    "thisDemoCli": "index.js"
+  }
+}

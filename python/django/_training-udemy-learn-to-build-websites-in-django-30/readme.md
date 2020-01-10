@@ -11,6 +11,10 @@ https://www.udemy.com/course/learn-to-build-websites-in-django-30/
 
 ### S02/E02 Section Overview
 
+* About Django
+* Controller Settings
+* Compiler Installation
+
 ### S02/E03 Introduction to Django
 
 ### S02/E04 Features of Django
@@ -23,7 +27,20 @@ https://www.udemy.com/course/learn-to-build-websites-in-django-30/
 
 ### S03/E07 Section Overview
 
+* Create Project
+* Explaining Project Files
+
 ### S03/E08 Creating our first Django Project
+
+```
+# pip install django
+python -m django --version
+# django-admin startproject <project_name>
+# django-admin startproject myfirstproject
+```
+
+* create virtual environment
+* Django/Jinja2
 
 ### S03/E09 Manage.py (Project Files)
 
@@ -37,13 +54,57 @@ https://www.udemy.com/course/learn-to-build-websites-in-django-30/
 
 ### S04/E13 Section Overview
 
+* Creating App
+* Running the Server
+* Explaining App Files
+
 ### S04/E14 Creating our First Project
+
+* virtual environment (venv)
+
+```
+(venv) python manage.py startapp <app_name>
+(venv) python manage.py startapp calc
+```
 
 ### S04/E15 Explaining Project Files
 
+**calc/migrations/\_\_init\_\_.py**
+
+* **\_\_init\_\_.py**
+  * constructor file of the application
+  * initializations can be done here
+  * most often is not used
+* **admin.py**
+  * display models on django admin panel
+  * customize panel
+  * main controller pod of the application
+  * main commands of the application
+  * is handled by other files
+* **apps.py**
+  * helps the user include application configuration
+  * configuration for the entire application
+* **models.py**
+  * class that represents collection in the database
+  * attributes of the class are fields of the table
+* **tests.py**
+  * creates a clean database before the tests are run
+  * runs every test function in it's own transaction
+* **views.py**
+  * view function takes a web request and returns a response
+
 ### S04/E16 Running the Server
 
+```
+python manage.py runserver
+```
+
+* http://127.0.0.1:8000/
+
 ### S04/E17 Create our First Django Application
+
+* project can have multiple apps
+  * both apps need to have their own **urls.py**
 
 ## S05 Django Template Language
 

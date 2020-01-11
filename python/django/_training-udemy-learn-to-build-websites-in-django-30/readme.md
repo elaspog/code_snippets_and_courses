@@ -69,8 +69,6 @@ python -m django --version
 
 ### S04/E15 Explaining Project Files
 
-**calc/migrations/\_\_init\_\_.py**
-
 * **\_\_init\_\_.py**
   * constructor file of the application
   * initializations can be done here
@@ -110,11 +108,147 @@ python manage.py runserver
 
 ### S05/E18 Section Overview
 
+* Django Template Language
+* Jinja Format
+* GET vs POST
+
 ### S05/E19 Django Template Language
+
+**calc/views.py**  
+**calc/settings.py**  
+**templates/index.html**  
+
+```
+python manage.py runserver
+```
+
+* http://127.0.0.1:8000/
+
+* rendered with the contents
+  * context is in **views.py**
+
+```
+def home(request):
+    return render(request,'index.html')
+```
+
+* **settings.py**
+
+```
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+//...
+TEMPLATES = [
+    {
+        //...
+        'DIRS': [os.path.join(BASE_DIR), 'templates'],
+        //...
+    },
+]
+```
 
 ### S05/E20 The Jinja Format
 
+**calc/urls.py**  
+**calc/views.py**  
+**templates/index.html**  
+**templates/base.html**  
+**templates/result.html**  
+
+```
+python manage.py runserver
+```
+
+* http://127.0.0.1:8000/
+
+* **settings.py**
+
+```
+urlpatterns = [
+    //...
+    path('add', views.add, name='add'),
+]
+```
+
+* **views.py**
+
+```
+def add(request):
+    return render(request,'result.html')
+```
+
+* **index.html**
+
+```
+<form action="add">
+  Enter 1st Number : <input type="text" name="num1"><br>
+  Enter 2st Number : <input type="text" name="num2"><br>
+  <input type="submit">
+</form>
+```
+
+GET method URL:
+```
+http://127.0.0.1:8000/add?num1=3&num2=6
+```
+
 ### S05/E21 GET vs POST
+
+**templates/index.html**  
+**calc/views.py**  
+**calc/settings.py**  
+
+HTTP Requests:
+* GET
+  * requests a representation of a specified resource
+  * should only retrieve data
+* POST
+  * submits an entity to the specified resource
+  * causing a change in the state
+* PUT
+  * replaces all current representations of the target resource with the request payload
+* HEAD
+  * asks for a resource identical to the GET request, but without the response body
+* DELETE
+  * deletes the specified resource
+* PATCH
+  * applies partial modification to a resource
+* OPTIONS
+  * describes the communication options for the target resource
+* CONNECT
+  * establishes a tunnel to the server identified by the target resource
+* TRACE
+  * performs a message loop back test along the path to the target resource
+
+index.html
+```
+<form action="add" method="POST">
+
+  {% csrf_token %}
+
+  Enter 1st Number : <input type="text" name="num1"><br>
+  Enter 2st Number : <input type="text" name="num2"><br>
+  <input type="submit">
+</form>
+```
+views.py
+```
+def add(request):
+    val1 = int(request.POST['num1'])
+    val2 = int(request.POST['num2'])
+    res = val1 + val2
+    return render(request,'result.html',{'result':res})
+```
+
+* POST Method instead of GET
+* CSRF token
+  * to stop **Cross Site Request Forgery** which is a type of **Cross Site Scripting** attacks
+  * when receiving the form submission Django checks, that an alphanumeric string value from a hidden form field matches and the CSRF token cookie received from the browser
+  * CSRF attack might come in form of malicious website that include an iframe, what includes a POST form and Javascript code
+
+* **settings.py**
+```
+'django.middleware.csrf.CsrfViewMiddleware'
+```
 
 ## S06 Creating and Making our Content from Static to Dynamic
 

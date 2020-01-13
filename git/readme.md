@@ -15,3 +15,21 @@ git init
 git add .
 git commit -am "Initial Commit"
 ```
+
+## LFS configuration
+
+```
+# install git-lfs executable
+
+# in repository:
+git lfs install
+
+git lfs track "*.jpg"
+git add .gitattributes
+git add file.jpg
+
+git commit -m "Add binary file"
+git push origin master
+
+git lfs ls-files
+```

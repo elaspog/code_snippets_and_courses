@@ -459,3 +459,206 @@ vault write secret/dev/foo value=bar
 vault write secret/admin/foo value=bar
 # OK
 ```
+
+## S06 Vault Tokens
+
+### S06/E24 Understanding Vault Tokens
+
+Every authentication backend generates a token. Vault has an internal token store where it keeps these tokens.
+
+Tokens
+
+* Main method of authentication
+* Static or dynamic
+  * root token of the development server is static
+  * static tokens typically does not expire
+* External identities are mapped tokens
+* Policies determine what an identity is allowed or not allowed to do
+
+Token Hierarchies
+
+* Child tokens can be created from parent tokens
+* Child token inherits everything from the parent
+* Revoking parent invalidates all children
+
+Token Accessors
+
+* Created when an authentication token is created
+* Used to reference actual token
+  * Look up a token's  properties
+  * Look up a token's capabilities
+  * Revoke the token
+* Typically used when an intermediate process is involved with generating and managing tokens
+
+Token Renewal
+
+* All non-root tokens have Time-to-Live (TTL) value
+* TTL represents period of validity from creation or last renewal
+* Policies determine TTL value and renewal ability
+* Root tokens CAN optionally have a TTL assigned
+* When TTL passes token is revoked
+* Users must renew token within the TTL to avoid revocation
+
+### S06/E25 Wrapped Response Tokens
+
+Response Wrapping
+
+* Vault responds with a reference to the actual secret rather than the secret itself
+* Typical use case - Separating trusted and end user responsibilities
+  * Only Trusted Entity has responsibility of managing Vault access to Vault API and is responsible for passing secrets back to end user
+* Handled on a per-request basis
+
+Benefits of Response Wrapping
+
+* Provides Cover
+  * Ensures the data being passed back to the client is not actual secret
+* Provides Malfeasance Protection
+  * Ensures only a single party accesses the secret
+* Limits Secret Exposure
+  * Response wrapping token has a short lived TTL separate from actual secret
+
+How Response wrapping Works
+
+HashiCorp Vault has secret backend, called Cubbyhole Secret Backend. Each one is associated with an authentication token.
+
+1. end user asks for XYZ Secret
+2. Vault stores the secret in a cubbyhole, that only end user has access to
+3. Vault wraps the response with reference token and sends it back to the user
+  * instead of returning the XYZ Secret itself to the user
+4. User accesses the XYZ secret using the reference token
+  * other users asking for other secrets stored in (different) Cubbyhole, protected by a different reference token
+
+```
+vault read -wrap-ttl="1h" secret/dev/foo
+```
+
+* wrapped tokens are single use, after unwrapping a secret with a wrapped token, the wrapping token is no longer valid
+
+Operations
+
+* Lookup
+  * sys/wrapping/lookup
+  * allows a token holder to lookup properties on the wrapped token
+  * can be used to determine if a wrapped token still exists, if somebody has unwrapped the token, this operation returns an error
+* Unwrap
+  * sys/wrapping/unwrap
+  * unwrap the original token with the wrapped token, when a secret is unwrapped using a response token, the original secret is returned back to the client
+* Rewrap
+  * sys/wrapping/wrap
+  * an original wrapped response wrapping token can be rewrapped, like migrating a secret from one wrapped token to another
+    * typically when a long lived secret needs to be rotated periodically
+* Wrap
+  * sys/wrapping/wrap
+  * helper endpoint, simply echoes back anything sent to it in a wrapped response
+
+### S06/E26 Lab Part 1 - Creating Authentication Token
+
+* every authentication backend generates auth token for the user
+* tokens can be managed (create, renew, revoke) independently of the backend
+
+```
+vault write auth/userpass/users/bob password=password
+
+# login as bob
+vault auth -method=userpass username=bob
+# <AUTHENTICATION_TOKEN> was generated
+
+vault -help token-lookup
+
+# looks up metadata or information on specific token
+vault token-lookup
+```
+
+* Token Accessors
+  * are references to an actual authentication token
+  * are typically used by trusted third party processes that are used to manage resources
+* TTL
+  * can be renewed to extend it's life without having to reauthenticate
+  * when reauthenticated, the TTL will be reset
+* Expiration
+* Orphan token stand on their own
+  * revoke on parent token won't affect orphan token, but will revoke it's children
+
+Child token inherits all the policies from the parent token.
+Only authorized tokens are allowed to create child tokens.
+
+### S06/E27 Lab Part 2 - Creating Child Token
+
+```
+vault auth
+<ROOT_TOKEN>
+
+vault token create -policy="dev_policy"
+# copy token from here
+```
+
+* token is a valid credential for authenticating against Vault
+  * don't need to have an identity, user/pass on github/amazon/etc.
+
+```
+vault auth
+<PASTE_TOKEN>
+
+vault write secret/dev/foo value=abcxyz
+# ok
+
+vault write secret/admin/foo value=abcxyz
+# permission denied
+
+vault token-renew
+```
+
+* only renews if the policy allows to renew
+
+### S06/E28 Lab Part 3 - Revoking Tokens
+
+```
+vault auth
+<ROOT_TOKEN>
+
+vault token-revoke -accessor <ACCESSOR_TOKEN>
+
+vault auth
+<ORIGINAL_TOKEN>
+# permission denied
+```
+
+### S06/E29 Lab Part 4 - Wrapping Responses
+
+* in certain situations response wrapping may be a more secure process than directly providing access to end users
+* mostly used when there exists a trusted external process responsible for interacting with Vault directly
+* provides
+  * cover
+    * actual secret is not directly returned to end user
+  * tampering and interception capabilities
+    * only the intended recipient is capable to unwrap the secret
+  * limited lifetime on secret exposure
+
+```
+vault status
+
+vault write secret/mysecret value=hush
+
+vault read secret/mysecret
+
+vault read -wrap-ttl="1h" secret/mysecret
+# copy the <WRAPPED_TOKEN>
+```
+
+```
+curl -X POST -H "X-Vault-Token:<AUTHENTICATION_TOKEN> --data '{"token": "<WRAPPED_REPONSE_TOKEN>"}' https://localhost:8200/v1/sys/wrapping/lookup
+# JSON object containing all the metadata about the wrapped response token
+
+# this can be performed only once:
+curl -X POST -H "X-Vault-Token:<AUTHENTICATION_TOKEN> --data '{"token": "<WRAPPED_REPONSE_TOKEN>"}' https://localhost:8200/v1/sys/wrapping/unwrap
+# response token contains secret (value=hush)
+
+vault read secret -wrap-ttl="1h" secret/mysecret
+# secret still exists
+
+# policy can prevent direct read on this secret and forces user to use tokens:
+vault read secret/mysecret
+```
+
+* looking up is not unwrapping
+* wrapped response tokens are for single use only

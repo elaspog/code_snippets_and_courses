@@ -1,0 +1,11 @@
+{
+	"example_key_1": {
+		"example_endpoint": "https://www.example.com/my-api",
+		"example_sql": "SELECT * FROM mytable;"
+	},
+	"example_key_2": {
+		"username": "username",
+		"password": "password",
+		"retry_count": 10
+	}
+}

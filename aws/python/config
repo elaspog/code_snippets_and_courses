@@ -1,0 +1,4 @@
+[profile example-role1]
+region = eu-west-1
+role_arn = arn:aws:iam::123456789012:role/example-role2
+credential_source = Ec2InstanceMetadata

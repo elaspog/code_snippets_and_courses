@@ -176,3 +176,10 @@ def aws_s3_download_json(filename):
 
     data_json = json.loads(data)
     return data_json
+
+
+# Writing message to a Slack channel
+def write_to_slack(message):
+    slack_webhook_url = json.loads(aws_get_secret('slack_webhook_url'))['slack_webhook_url']
+    slack_msg = {'text': message}
+    requests.post(slack_webhook_url, data = json.dumps(slack_msg))

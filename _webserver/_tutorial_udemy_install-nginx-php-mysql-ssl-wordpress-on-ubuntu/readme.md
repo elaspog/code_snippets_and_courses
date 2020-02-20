@@ -210,3 +210,65 @@ In web browser:
 ```
 http://<FLOATING_IP>/info.php
 ```
+
+## S04 Domain Names & SSL
+
+### S04/E11 Modifying Domain Name Server
+
+GoDaddy -> Domain -> DNS -> Nameservers -> Change
+
+```
+ns1.digitalocean.com
+ns2.digitalocean.com
+ns3.digitalocean.com
+```
+
+### S04/E12 Configuring DNS Zone Files
+
+Digital Ocean -> Networking
+  * Enter domain
+  * Attach to the project
+
+add A record:
+* enter '@' or hostname
+* enter the FLOATING IP
+* TTL = 120
+
+add A record:
+* enter 'www'
+* enter the FLOATING IP
+* TTL = 120
+
+### S04/E13 Updating the NGINX Block File Configuration File
+
+**/etc/nginx/sites-available/default**
+
+```
+nano /etc/nginx/sites-available/default
+
+# server_name www.unificaxt.com unificaxt.com 165.227.254.72;
+
+systemctl reload nginx
+```
+
+### S04/E14 Installing Let's Encrypt SSL on NGINX
+
+Certbot
+```
+add-apt-repository ppa:certbot/certbot
+apt install python-certbot-nginx
+
+# nano /etc/nginx/sites-available/default
+
+cerbot --nginx -d unifcaxt.com -d www.unificaxt.com
+# admin@unificaxt.com
+# agree terms of service
+# not share email address
+# redirect all traffic to HTTPS version of the site
+```
+
+Auto renewal:
+
+```
+certbot new --dry-run
+```

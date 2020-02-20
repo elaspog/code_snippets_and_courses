@@ -50,3 +50,163 @@ https://www.udemy.com/course/install-nginx-php-mysql-ssl-wordpress-on-ubuntu
 * strict coding style
 * zero downtime
 * multiple backend apps
+
+## S02 Virtual Server Basics
+
+### S02/E04 Deploying a Droplet on Digital Ocean
+
+https://www.digitalocean.com/
+
+* create new project
+* Ubuntu 18.04
+
+### S02/E05 Attaching a floating IP
+
+* allows to transfer the IP address to any other server in the future
+
+### S02/E06 Connecting to your Virtual Server
+
+* terminal
+* putty
+* web based command console
+
+```
+ssh root@<FLOATING_IP>
+```
+
+## S03 Install and Configure LEMP Stack (Linux, NGINX, MySQL, PHP)
+
+### S03/E07 Install and Configure NGINX
+
+```
+apt update
+apt install nginx
+```
+
+### S03/E08 Install and Configure MySQL on NGINX
+
+```
+apt install mysql-server-5.7
+mysql_secure_installation
+# validate password plugin      -> no
+#   interferes with other modules
+# remove anonymous users        -> yes
+# disallow root login remotely  -> yes
+# remove test database          -> yes
+# reload the privilege tables   -> yes
+```
+
+**auth_socker plugin**
+* in Ubuntu systems that are running the latest version of MySQL the root mysql user is configured to authenticate with auth_socket plugin by default, rather than a text based password
+* this authentication method interferes with components installed later
+
+**mysql_native_password**
+* lets the connection with regular text based password
+
+```
+mysql
+SELECT user, authentication_string, plugin, host FROM mysql.user;
+# root user authenticates with auth_socket plugin
+
++------------------+-------------------------------------------+-----------------------+-----------+
+| user             | authentication_string                     | plugin                | host      |
++------------------+-------------------------------------------+-----------------------+-----------+
+| root             |                                           | auth_socket           | localhost |
+| mysql.session    | *THISISNOTAVALIDPASSWORDTHATCANBEUSEDHERE | mysql_native_password | localhost |
+| mysql.sys        | *THISISNOTAVALIDPASSWORDTHATCANBEUSEDHERE | mysql_native_password | localhost |
+| debian-sys-maint | *742DF0C78B1F767572E29120A0D96C01FB00C678 | mysql_native_password | localhost |
++------------------+-------------------------------------------+-----------------------+-----------+
+4 rows in set (0.00 sec)
+
+# ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'password';
+ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'Test0101';
+FLUSH PRIVILEGES;
+SELECT user, authentication_string, plugin, host FROM mysql.user;
+
++------------------+-------------------------------------------+-----------------------+-----------+
+| user             | authentication_string                     | plugin                | host      |
++------------------+-------------------------------------------+-----------------------+-----------+
+| root             | *A88C15500DF07EE41AF620EBD20B9AC5895B2F91 | mysql_native_password | localhost |
+| mysql.session    | *THISISNOTAVALIDPASSWORDTHATCANBEUSEDHERE | mysql_native_password | localhost |
+| mysql.sys        | *THISISNOTAVALIDPASSWORDTHATCANBEUSEDHERE | mysql_native_password | localhost |
+| debian-sys-maint | *742DF0C78B1F767572E29120A0D96C01FB00C678 | mysql_native_password | localhost |
++------------------+-------------------------------------------+-----------------------+-----------+
+4 rows in set (0.00 sec)
+
+exit
+```
+
+### S03/E09 Install and Configure PHP on NGINX
+
+**/etc/nginx/sites-available/default**
+
+* NGINX does not contain the ability to process PHP natively
+  * Processing manager: **php-fpm**
+    * FPM - Fast CGI Process Manager
+
+```
+apt install php-fpm php-mysql
+```
+
+* modify server block configuration files on NGINX
+  * Server block files are similar to Virtual Host files on Apache
+  * they instruct the server how to process many different components
+    * e.g.: handle multiple domain, specify what file extensions a block can handle
+
+* modifying the default block configuration file (because there is only one domain in this example)
+
+```
+nano /etc/nginx/sites-available/default
+```
+
+Uncomment and set the lines in the block configuration file:
+```
+# set preference on PHP files  HTML files
+index index.php index.html index.htm index.nginx-debian.html;
+
+# domain name or IP address
+server_name <FLOATING_IP>;
+
+# set how to handle requests for pages that are not found
+location / {
+  try_files $uri $uri/ =404;
+}
+
+# configuration for processing PHP
+location ~ \.php {
+  include snippets/fastcgi-php.conf;
+  fastcgi_pass unix:/var/run/php/php7.2-fpm.sock
+}
+
+# not to process .htaccess files
+location ~ /\.ht {
+  deny all;
+}
+```
+
+```
+# Test configuration file
+nginx -t
+
+# Reload the sever
+systemctl reload nginx
+```
+
+In web browser:
+```
+http://<FLOATING_IP>
+```
+
+### S03/E10 Creating a PHP Test File
+
+**info.php**
+
+```
+nano /var/www/html/info.php
+rm /var/www/html/info.php
+```
+
+In web browser:
+```
+http://<FLOATING_IP>/info.php
+```

@@ -251,6 +251,14 @@ nano /etc/nginx/sites-available/default
 systemctl reload nginx
 ```
 
+In web browser:
+
+```
+http://<FLOATING_IP>
+http://<DOMAIN_NAME>
+http://<WWW.DOMAIN_NAME>
+```
+
 ### S04/E14 Installing Let's Encrypt SSL on NGINX
 
 Certbot
@@ -271,4 +279,96 @@ Auto renewal:
 
 ```
 certbot new --dry-run
+```
+
+## S05 PhpMyAdmin on NGINX
+
+### S05/E15 Installing PhpMyAdmin
+
+PhpMyAdmin
+
+```
+apt-get update
+apt-get install phpmyadmin
+# select niether apache2 nor lighttpd
+# configure database with dbconfig-common for phpmyadmin
+
+# to access phpmyadmin from web browser
+ln -s /usr/share/phpmyadmin /var/www/html
+
+# enable mcrypt module
+phpenmod mcrypt
+
+# restart php7.2-fpm
+systemctl restart php7.2-fpm
+```
+
+In web browser:
+
+```
+http://<DOMAIN_NAME>/phpmyadmin
+# root / password
+```
+
+### S05/E16 Securing PhpMyAdmin with Symbolic Links
+
+```
+cd /var/www/html
+ls -l
+mv phpmyadmin hidedb
+ls -l
+```
+
+In web browser:
+
+```
+http://<DOMAIN_NAME>/phpmyadmin
+# no longer works
+
+http://<DOMAIN_NAME>/hidedb
+# works
+```
+
+### S05/E17 Securing PhpMyAdmin with Authentication Gateways
+
+**/etc/nginx/pma_pass**
+
+Create authentication gateway:
+
+```
+openssl passwd
+# enter a new password
+# select and copy the encrypted version of the entered password
+
+nano /etc/nginx/pma_pass
+# <USER_NAME>:<COPIED_ENCRYPTED_PASSWORD>
+# save the file
+```
+
+### S05/E18 Enabling Authentication Gateways on NGINX
+
+**/etc/nginx/sites-available/default**
+
+```
+nano /etc/nginx/sites-available/default
+# create a new location block with the name phpmyadmin symbolic link created earlier:
+
+  location /hidedb {
+
+    # displays authentication prompt to users when trying to access phpmyadmin
+    auth_basic "Admin Login";
+
+    # confirm the username/password agains previously created file
+    auth_basic_user_file /etc/nginx/pma_pass;
+  }
+```
+
+```
+service nginx restart
+```
+
+In web browser:
+```
+http://<DOMAIN_NAME>/hidedb
+# login prompt asks for username/password
 ```

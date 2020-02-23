@@ -704,38 +704,262 @@ https://<DOMAIN_NAME>/wp-admin
 
 ### S03/E40 Introduction to SSL Certificates
 
+**SSL** = Secure Socket Layer
+- proved identity
+- secure communication
+- digital certificate
+- encrypts information sent to the server
+- varying degrees of credibility
+
+some issuers:
+- DigiCert
+- GoDaddy
+- GlobalGign
+- VeriSign
+- Let'sEencrypt
+
 ### S03/E41 Traditional vs. Digital Certificate
+
+- can be issued to:
+  - user
+  - computer
+  - device
+  - web page
+- can expire
+  - may require renewal
+  - renewal process can be automated
+- contains a public key
+- contains a digital signature
+  - can be used to determine if any data fields has been altered
+
+**CA** = Certificate Authority
+- can be private companies or government organizations
+- certificates issued by CAs, that have been operational for longer period of time are more highly trusted
+  - their certificates are compatible with older browsers and devices
 
 ### S03/E42 Types of SSL Certificates
 
+- Encrypt data
+- Encryption + Elevated Credibility
+- EV = Extended Validation
+  - information about organization
+  - EV Guidelines
+- OV = Organizational Validation
+  - some company information
+  - validated domain ownership
+- DV = Domain Validation, SSL Certificates
+  - cheapest, easiest
+  - validates domain ownership, but does not require additional information about the organization
+
 ### S03/E43 How SSL Certificates Work
+
+- certificate is authentic and unaltered
+  - digital signature is added to the certificate
+  - hash value generated from the contents is assigned to the certificate
+- digital_signature = encrypt(hash(certification), private_key)
+  - can be decrypted with the public_key
+- public_key can be used to encrypt the data
+  - the encrypted data can be read by using private_key only
+- to check the certificate
+  - decrypt(certificate, public_key)
+  - decryption should result the original hash value assigned
+
+
+- digital signature
+  - used to check identity
+  - ensures the domain name matches the one intended by the CA
 
 ### S03/E44 Obtaining an SSL Certificate
 
+- DigiCert
+- certificates for CAs are preinstalled to the operating system
+- any site using certificate issued by DigiCert will be trusted after validating their certificate (domain match and unaltered certification)
+- certificates from not known sources generate error
+
 ### S03/E45 Introduction to Lets Encrypt
+
+- Let's Encrypt automates the process of manual creation, validation, signing, installation, renewal. Provides TLS and SSL encryption.
+- Can be installed to shared hosting accounts, but it's strongly recommended to used cloud hosting instead.
 
 ### S03/E46 Server Preparation
 
+- Need to register a domain name. A certificate can't be installed for a server with only a public IP address.
+
 ### S03/E47 Domain Name Server Administration
+
+- HostGator, GoDaddy, NameCheap etc.
+- Make sure that the name servers of the domain registrar point to the Digital Ocean.
+
+```
+ns1.digitalocean.com
+ns2.digitalocean.com
+ns3.digitalocean.com
+```
 
 ### S03/E48 Introduction to Digital Ocean
 
+http://digitalocean.com
+
 ### S03/E49 Droplet Configurations
+
+- smallest droplet
 
 ### S03/E50 Creating a Droplet
 
+- Ubuntu 16.04 x64
+- smallest droplet
+- hostname: myserver
+
 ### S03/E51 Install PuTTY-Terminal and Connect
+
+www.putty.org
+
+- root/\<PASSWORD_FROM_EMAIL\>
 
 ### S03/E52 Install LAMP Stack - Apache, MySQL, PHP
 
+```
+apt-get update
+apt-get upgrade
+
+apt-get install lamp-server^
+# create password for mysql root user
+
+apt-get install apache2-utils
+
+apt-get install phpmyadmin
+# select apache2
+# configure with dbconfig-common -> yes
+# mysql application password for phpmyadmin
+
+ls -s /etc/phpmyadmin/apache.conf /etc/apache2/conf-enabled/phpmyadmin.conf
+
+# restart apache2 service
+/etc/init.d/apache2 reload
+```
+
+in browser:
+```
+<IP_ADDRESS>
+```
+
 ### S03/E53 Configure DNS on Digital Ocean
+
+- Digital Ocean dashboard
+  - Networking
+  - Add domain (enter the dodmain name)
+    - Create Record
+      - A record
+      - hostname = '@'
+      - alias = select 'mainserver's IP address
+    - Create Record
+      - CNAME record (for www)
+      - hostname = 'www'
+      - alias = '@'
 
 ### S03/E54 Droplet Basic Configurations
 
+Add IP address and domain name to the hosts file of the server and update time and date settings.
+
+```
+nano /etc/hosts
+# enter IP address and Domain name under localhost entry, e.g.:
+# 104.131.47.211  uaccel.com
+
+dpkg-reconfigure tzdata
+# select geographic area
+# select region
+```
+
 ### S03/E55 Installing Lets Encrypt
+
+```
+apt-get install python-letsencrypt-apache
+
+# letsencrypt --apache -d <DOMAIN_NAME>
+letsencrypt --apache -d uaccel.com
+# enter email address
+# agree terms of service
+# redirect all requests to HTTPS
+```
+
+in browser:
+```
+# https://<DOMAIN_NAME>
+https://uaccel.com
+
+# http://<DOMAIN_NAME>
+http://uaccel.com
+```
 
 ### S03/E56 SSL Certificate Status Reports
 
+Check the certificate periodically:
+```
+https://ssllabs.com/ssltest/analyze.html?d=<DOMAIN_NAME>
+https://ssllabs.com/ssltest/analyze.html?d=uaccel.com
+```
+
 ### S03/E57 Redirect all Domain Variations to HTTPS
 
+**.htaccess**
+
+Not all variations are redirecting to the base domain over HTTPS protocol, e.g.: the www.uaccel.com, the IP address or uaccel.com are not redirecting.
+
+**.htaccess** file tells apache where all URL variations should be redirected
+
+```
+cd /var/www/
+ls
+# index.html
+
+nano .htaccess
+```
+.htaccess file content:
+```
+Options +FollowSymLinks
+RewriteEngine on
+RewriteCond %{HTTP_HOST} ^www\.uaccel\.com$
+RewriteRule ^/?$ "https\:\/\/uaccel\.com\/" [R=301,L]
+RewriteCond %{HTTP_HOST} ^104\.131\.47\.211
+RewriteRule (.*) https://uaccel.com/$1 [R=301,L]
+RewriteCond %{HTTP_USER_AGENT} libwww-perl.*
+RewriteRule .* ? [F,L]
+```
+instruct apache to read .htaccess configuration file any time the website is accessed
+```
+nano /etc/apache2/apache2.conf
+```
+Modify the following line:
+```
+<Directory /var/www>
+  Options Indexes FollowSymLinks
+# AllowOvverride None
+  AllowOvverride All
+  Require all granted
+</Directory>
+```
+
+```
+service apache2 restart
+```
+Clear web browser cache and in browser test each variation again:
+```
+www.uaccel.com
+uaccel.com
+104.131.47.211
+
+# they all redirect
+```
+
 ### S03/E58 Auto Renewal with cron jobs
+
+Set a cronjob in crontab
+```
+crontab -e
+```
+Add the following cronjob:
+```
+30 3 * * 1 /usr/bin/letsencrypt renew >> /var/log/le-renew.log
+# renews the certificate every Monday at 3:30 AM
+```

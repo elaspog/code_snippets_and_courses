@@ -1,0 +1,9 @@
+Options +FollowSymLinks
+RewriteEngine on
+RewriteCond %{HTTP_HOST} ^www\.uaccel\.com$
+RewriteRule ^/?$ "https\:\/\/uaccel\.com\/" [R=301,L]
+RewriteCond %{HTTP_HOST} ^104\.131\.47\.211
+RewriteRule (.*) https://uaccel.com/$1 [R=301,L]
+RewriteCond %{HTTP_USER_AGENT} libwww-perl.*
+RewriteRule .* ? [F,L]
+

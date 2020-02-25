@@ -447,6 +447,8 @@ in browser:
 
 ## S02 Deploying a Virtual Server on Digital Ocean
 
+> This section is already processed from another course.
+
 ### S02/E31 Deploying a Virtual Server on Digital Ocean
 
 ### S02/E32 Creating and Attaching a Floating IP

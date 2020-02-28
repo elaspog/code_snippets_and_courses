@@ -10,6 +10,53 @@ https://www.udemy.com/course/learn-devops-infrastructure-automation-with-terrafo
 
 ### S01/E03 Procedure Document
 
+#### Github repository
+
+https://github.com/wardviaene/terraform-course
+
+#### Questions & Support
+
+https://www.facebook.com/groups/840062592768074
+
+#### AWS Setup
+
+https://aws.amazon.com/cli/
+
+```
+apt-get install python-pip
+
+sudo pip install --upgrade awscli
+
+aws configure
+```
+
+http://www.cloudping.info/
+
+```
+aws iam get-user
+```
+
+#### Useful Commands
+
+```
+$ terraform plan                       # plan
+$ terraform apply                      # shortcut for plan & apply - avoid this in production
+$ terraform plan -out out.terraform    # terraform plan and write the plan to out file
+$ terraform apply out.terraform        # apply terraform plan using out file
+$ terraform show                       # show current state
+$ cat terraform.tfstate                # show state in JSON format
+```
+
+#### Using putty instead of the ssh command
+
+http://www.chiark.greenend.org.uk/~sgtatham/putty/download.html
+
+#### Reference Documentation
+
+https://www.terraform.io/downloads.html  
+https://www.terraform.io/docs/providers/aws/  
+https://www.terraform.io/docs/providers/index.html  
+
 ## S02 Introduction to terraform
 
 ### S02/E04 Introduction

@@ -61,11 +61,86 @@ https://www.terraform.io/docs/providers/index.html
 
 ### S02/E04 Introduction
 
+- Infrastructure as Code
+- Automation of infrastructure
+- Keeps an infrastructure in certain state (compliant)
+- Auditable infrastructure
+- Change history in version control
+- Ansible, Chef, Puppet, Saltstack
+  - provisioning of the machines
+  - keeping machines in compliance, in a certain state
+  - installation and configuration
+  - automating machines
+- Terraform
+  - can automate provisioning of the infrastructure
+  - uses the API of the cloud services
+  - works well with automation softwares to install softwares after the infrastructure is provisioned
+
 ### S02/E05 Terraform installation
+
+https://www.terraform.io  
+v0.7.4
+
+Linux/MacOS:
+```
+mkdir terraform
+cd terraform
+
+export PATH=/path/to/terraform/:$PATH
+terraform
+```
+Windows:
+```
+set PATH=%PATH%;C:\terraform
+terraform
+```
 
 ### S02/E06 Terraform Installation (on Windows)
 
+https://www.terraform.io  
+v.0.11.7
+
+- extract to `C:\terraform`
+- add `C:\terraform` to the Path variable
+
+in cmd/power shell:
+```
+terraform
+terraform --version
+```
+in linux shell (or sometimes in windows):
+```
+ssh-keygen
+```
+in windows:
+- puttygen.exe
+  - enter Key passphrase (optional)
+  - Key / Generate new keypair
+    - Save public key `mykey.pub`
+    - Conversions / Export OpenSSH Key: `mykey`
+    - Sace Private key (for putty): `mykey.ppk`
+- putty.exe
+  - Connections / SSH / Auth
+    - Browse the `ppk` private key
+
 ### S02/E07 Terraform installation using Vagrant
+
+https://www.virtualbox.com  
+https://www.vagrantup.com  
+
+```
+git clone https://github.com/wardviaene/devops-box
+
+cd devops-box
+vagrant up
+
+vagrant ssh-config
+vagrant ssh
+```
+
+```
+terraform
+```
 
 ## S03 Terraform basics
 

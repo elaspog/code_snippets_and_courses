@@ -33,3 +33,13 @@ git push origin master
 
 git lfs ls-files
 ```
+
+## Useful commands
+
+```
+# count all commit
+git rev-list --all --count
+
+# count all commit for a revision (HEAD, master, <commit_hash> etc.)
+git rev-list --count <revision>
+```

@@ -125,6 +125,9 @@ in windows:
 
 ### S02/E07 Terraform installation using Vagrant
 
+**Vagrantfile**  
+**install.sh**  
+
 https://www.virtualbox.com  
 https://www.vagrantup.com  
 
@@ -146,13 +149,231 @@ terraform
 
 ### S03/E08 Understanding terraform HCL
 
+**main.tf**  
+**resource.tf**  
+**terraform.tfvars**  
+
+HCL - HashiCorp Configuration Language
+
+```
+mkdir terraform-test
+cd terraform-test
+vim main.tf
+```
+- Terraform reads all `.tf` files from the directory
+
+main.tf:
+```
+variable "myvar" {
+  type = string
+  default = "hello terraform"
+}
+
+variable "mymap" {
+  type = map(string)
+  default = {
+    mykey = "my value"
+  }
+}
+
+variable "mylist" {
+  # type = list(string)
+  type = list # determines the type
+  default = [1,2,3]
+}
+```
+
+console:
+```
+terraform version
+terraform console
+
+var.myvar
+"${var.myvar}"    # from Terraform 0.12
+
+var.mymap
+var.mymap["mykey"]
+"${var.mymap["mykey"]}"
+
+var.mylist
+var.mylist[0]
+element(var.mylist, 1)
+element(var.mylist, 0)
+slice(var.mylist, 0, 2)
+
+exit
+vim resource.tf
+```
+
+resource.tf:
+```
+provider "aws" {
+
+}
+
+variable "AWS_REGION" {
+  type = string
+}
+
+# resource <RESOURCE_TYPE> <NAME>
+resource "aws_instance" "example" {
+# ami           = "${var.AMIS[var.AWS_REGION]}"
+  ami           = var.AMIS[var.AWS_REGION]
+  instance_type = "t2.micro"
+}
+```
+
+- `ami` and `instance_type` are arguments of the resource
+  - they don't need qoutes because they are predefined
+
+terraform.tfvars:
+```
+AWS_REGION="eu-west-1"
+```
+
+- initialization of the providers is required
+
+```
+# initialize plugins
+terraform init
+
+tarraform console
+> var.AWS_REGION
+> exit
+cat terraform.tfvars
+```
+
+- `terraform.tsstate` is created, where status is kept
+
+resource.tf:
+```
+# ...
+variable "AMIS" {
+  type = map(string)
+  default = {
+    eu-west-1 = "my ami"
+  }
+}
+# ...
+```
+
+console:
+```
+terraform console
+> var.AMIS[var.AWS_REGION]
+# my ami
+> var.AMIS["us-east-1"]
+# error
+```
+
+resource.tf:
+```
+resource "aws_instance" "example1" {
+  ami           = var.AMIS[var.AWS_REGION]
+  instance_type = "t2.micro"
+}
+resource "aws_instance" "example2" {
+  ami           = var.AMIS[var.AWS_REGION]
+  instance_type = "t2.small"
+  # ...
+}
+resource "aws_instance" "example3" {
+  ami           = var.AMIS[var.AWS_REGION]
+  instance_type = "t2.micro"
+}
+```
+
+- typical files
+  - `resource.tf`
+  - `vars.tf` - for variables
+  - `terraform.tfvars` - for values
+- where provider changes or new module is used, the `terraform init` command should be used
+  - initializes backend
+  - initializes provider plugins
+    - by default the latest version is used, but older version can be forced `version = "~> 2.33"`
+
 ### S03/E09 First steps in terraform - AWS Setup
+
+https://aws.amazon.com/  
+https://aws.amazon.com/free/  
+
+- open AWS account
+- create IAM admin user
+  - used in Terraform to provision the infrastructure
+  - Users / Add User
+  - Attach policy: Administrator Access
+  - save the **Access key ID** and **Secret access key**
+- Terraform file for t2.micro instance
+- run terraform configuration
 
 ### S03/E10 First steps in terraform - Spinning up an instance
 
+**instance.tf**
+
+https://cloud-images.ubuntu.com/locator/ec2
+
+```
+git clone https://github.com/wardviaene/terraform-course
+cd terraform-course
+cd first-steps
+ls
+cat instance.tf
+```
+
+- lookup for AMI ID on the website, e.g.: `eu-west-1 xenial`, select the type with EBS
+
+```
+nano instance.tf
+# add or modify the:
+#   Access Key
+#   Secret Access Key
+#   Region
+#   AMI id
+```
+
+- after `apply` or `destroy` check on AWC Console the status of the EC2 instance
+
+```
+terraform init
+
+terraform apply
+
+terraform destroy
+
+terraform plan
+
+terraform plan -out out.terraform
+terraform apply out.terraform
+```
+
+```
+terraform apply
+# is shortcut for
+terraform plan -out <FILE> ; terraform apply <FILE> ; rm <FILE>
+```
+
 ### S03/E11 First steps in terraform - summary
 
+- Terraform can be used with another cloud providers
+  - make sure to create Admin account or create an API key
+
 ### S03/E12 Terraform Variable Types
+
+- reworked from v0.12
+  - no necessary to define type
+  - more control over the variables
+  - for and for-each loops
+- simple types
+  - string
+  - number
+  - bool
+- complex types
+  - list(type)
+  - set(type)
+  - map(type)
+  - object({attr_name = type, ...})
+  - tuple([type, ...])
+- Terraform can determine the type
 
 ## S04 Terraform basics
 

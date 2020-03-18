@@ -1,9 +1,15 @@
 
 # How to install WordPress with Docker
 
-https://upcloud.com/community/tutorials/wordpress-with-docker/
+https://upcloud.com/community/tutorials/wordpress-with-docker/  
+https://upcloud.com/community/tutorials/deploy-wordpress-with-docker-compose/
 
-## Install Docker
+https://hub.docker.com/_/wordpress/  
+https://hub.docker.com/_/mariadb/
+
+## Installation
+
+### Install Docker
 
 ```
 curl -V
@@ -24,7 +30,20 @@ docker run hello-world
 sudo systemctl restart docker
 ```
 
-## MariaDB in a container
+### Installing Docker Compose
+
+```
+sudo -i
+curl -L https://github.com/docker/compose/releases/download/1.24.0/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose
+chmod +x /usr/local/bin/docker-compose
+exit
+
+docker-compose -v
+```
+
+## Docker based solution
+
+### MariaDB in a container
 
 * MariaDB Environment variables, these are marked in the Docker command with -e:
   * -e MYSQL_ROOT_PASSWORD= Set your own password here.
@@ -50,7 +69,7 @@ docker ps
 # docker <command> --help
 ```
 
-## WordPress with Docker
+### WordPress with Docker
 
 * WordPress container also takes environment variables and Docker parameters:
   * -e WORDPRESS_DB_PASSWORD= Set the same database password here.
@@ -82,4 +101,63 @@ docker rm wordpress
 sudo systemctl restart docker
 docker start wordpressdb
 # try creating the WordPress container again
+```
+
+## Docker Compose based solution
+
+```
+mkdir  ~/wordpress-compose && cd ~/wordpress-compose
+nano docker-compose.yml
+```
+
+In **docker-compose.yml** replace the database password and public_ip:
+```
+wordpress:
+    image: wordpress
+    links:
+     - mariadb:mysql
+    environment:
+     - WORDPRESS_DB_PASSWORD=password
+    ports:
+     - "public_ip:80:80"
+    volumes:
+     - ./html:/var/www/html
+mariadb:
+    image: mariadb
+    environment:
+     - MYSQL_ROOT_PASSWORD=password
+     - MYSQL_DATABASE=wordpress
+    volumes:
+     - ./database:/var/lib/mysql
+```
+
+```
+# Starts both containers in the background and leaves them running
+docker-compose up -d
+```
+
+in browser:
+```
+http://localhost:80
+```
+
+```
+# Check for updates on the WordPress and MariaDB images and push changes to containers
+docker-compose pull
+docker-compose up -d
+
+# Starts all stopped containers in the work directory
+docker-compose start
+
+# Stops all currently running containers in the work directory
+docker-compose stop
+
+# Validates and shows the configuration
+docker-compose config
+
+# Lists all running containers in the work directory
+docker-compose ps
+
+# Stops and removes all containers in the work directory
+docker-compose down
 ```

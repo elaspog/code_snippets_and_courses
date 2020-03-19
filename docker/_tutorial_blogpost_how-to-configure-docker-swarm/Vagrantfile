@@ -1,11 +1,26 @@
 Vagrant.require_version ">= 1.8.0"
 
+IP_CONSUL = "10.0.0.200"
+IP_MASTER1 = "10.0.0.201"
+IP_MASTER2 = "10.0.0.202"
+IP_NODE1 = "10.0.0.203"
+IP_NODE2 = "10.0.0.204"
+
+$set_environment_variables = <<SCRIPT
+echo "export IP_CONSUL='#{IP_CONSUL}'" >> /etc/profile.d/myvar.sh
+echo "export IP_MASTER1='#{IP_MASTER1}'" >> /etc/profile.d/myvar.sh
+echo "export IP_MASTER2='#{IP_MASTER2}'" >> /etc/profile.d/myvar.sh
+echo "export IP_NODE1='#{IP_NODE1}'" >> /etc/profile.d/myvar.sh
+echo "export IP_NODE2='#{IP_NODE2}'" >> /etc/profile.d/myvar.sh
+SCRIPT
+
 Vagrant.configure(2) do |config|
 
   config.vm.box = "ubuntu/bionic64"
   #config.vm.box = "ubuntu/trusty64"
   config.vm.synced_folder ".", "/vagrant", type: "virtualbox"
   config.vm.provision "shell", path: "configure_docker_on_ubuntu.sh"
+  config.vm.provision "shell", inline: $set_environment_variables, run: "always"
 
   config.vm.define "consul" do |consul|
     consul.vm.hostname = 'consul'
@@ -13,7 +28,7 @@ Vagrant.configure(2) do |config|
     consul.vm.provider :virtualbox do |vb|
         vb.name = "swarm-consul"
     end
-    consul.vm.network "private_network", ip: "10.0.0.200"
+    consul.vm.network "private_network", ip: "#{IP_CONSUL}"
     consul.vm.provision "shell", inline: "docker run -d -p 8500:8500 --name=consul progrium/consul -server -bootstrap"
   end
 
@@ -23,8 +38,8 @@ Vagrant.configure(2) do |config|
     manager1.vm.provider :virtualbox do |vb|
         vb.name = "swarm-manager1"
     end
-    manager1.vm.network "private_network", ip: "10.0.0.201"
-    manager1.vm.provision "shell", inline: "docker run -d -p 10.0.0.201:4000:4000 swarm manage -H :4000 --replication --advertise 10.0.0.201:4000 consul://10.0.0.200:8500"
+    manager1.vm.network "private_network", ip: "#{IP_MASTER1}"
+    manager1.vm.provision "shell", inline: "docker run -d -p #{IP_MASTER1}:4000:4000 swarm manage -H :4000 --replication --advertise #{IP_MASTER1}:4000 consul://#{IP_CONSUL}:8500"
   end
 
   config.vm.define "manager2" do |manager2|
@@ -33,8 +48,8 @@ Vagrant.configure(2) do |config|
     manager2.vm.provider :virtualbox do |vb|
         vb.name = "swarm-manager2"
     end
-    manager2.vm.network "private_network", ip: "10.0.0.202"
-    manager2.vm.provision "shell", inline: "docker run -d -p 10.0.0.202:4000:4000 swarm manage -H :4000 --replication --advertise 10.0.0.202:4000 consul://10.0.0.200:8500"
+    manager2.vm.network "private_network", ip: "#{IP_MASTER2}"
+    manager2.vm.provision "shell", inline: "docker run -d -p #{IP_MASTER2}:4000:4000 swarm manage -H :4000 --replication --advertise #{IP_MASTER2}:4000 consul://#{IP_CONSUL}:8500"
   end
 
   config.vm.define "node1" do |node1|
@@ -43,8 +58,8 @@ Vagrant.configure(2) do |config|
     node1.vm.provider :virtualbox do |vb|
         vb.name = "swarm-node1"
     end
-    node1.vm.network "private_network", ip: "10.0.0.203"
-    node1.vm.provision "shell", inline: "docker run -d swarm join --advertise=10.0.0.203:2375 consul://10.0.0.200:8500"
+    node1.vm.network "private_network", ip: "#{IP_NODE1}"
+    node1.vm.provision "shell", inline: "docker run -d swarm join --advertise=#{IP_NODE1}:2375 consul://#{IP_CONSUL}:8500"
   end
 
   config.vm.define "node2" do |node2|
@@ -53,8 +68,8 @@ Vagrant.configure(2) do |config|
     node2.vm.provider :virtualbox do |vb|
         vb.name = "swarm-node2"
     end
-    node2.vm.network "private_network", ip: "10.0.0.204"
-    node2.vm.provision "shell", inline: "docker run -d swarm join --advertise=10.0.0.204:2375 consul://10.0.0.200:8500"
+    node2.vm.network "private_network", ip: "#{IP_NODE2}"
+    node2.vm.provision "shell", inline: "docker run -d swarm join --advertise=#{IP_NODE2}:2375 consul://#{IP_CONSUL}:8500"
   end
 
 end

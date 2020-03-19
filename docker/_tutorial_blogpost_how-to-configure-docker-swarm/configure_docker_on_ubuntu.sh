@@ -16,4 +16,4 @@ sudo nohup dockerd -H tcp://0.0.0.0:2375 -H unix:///var/run/docker.sock &
 
 sudo docker info
 
-sudo usermod -aG docker vagrant
+sudo usermod -aG docker $USER

@@ -1,10 +1,13 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
 Vagrant.require_version ">= 1.8.0"
 
-IP_CONSUL = "10.0.0.200"
-IP_MASTER1 = "10.0.0.201"
-IP_MASTER2 = "10.0.0.202"
-IP_NODE1 = "10.0.0.203"
-IP_NODE2 = "10.0.0.204"
+IP_CONSUL = "10.0.0.100"
+IP_MASTER1 = "10.0.0.101"
+IP_MASTER2 = "10.0.0.102"
+IP_NODE1 = "10.0.0.103"
+IP_NODE2 = "10.0.0.104"
 
 $set_environment_variables = <<SCRIPT
 echo "export IP_CONSUL='#{IP_CONSUL}'" >> /etc/profile.d/myvar.sh

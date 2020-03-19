@@ -1,0 +1,60 @@
+Vagrant.require_version ">= 1.8.0"
+
+Vagrant.configure(2) do |config|
+
+  config.vm.box = "ubuntu/bionic64"
+  #config.vm.box = "ubuntu/trusty64"
+  config.vm.synced_folder ".", "/vagrant", type: "virtualbox"
+  config.vm.provision "shell", path: "configure_docker_on_ubuntu.sh"
+
+  config.vm.define "consul" do |consul|
+    consul.vm.hostname = 'consul'
+    consul.vm.define "swarm_consul"
+    consul.vm.provider :virtualbox do |vb|
+        vb.name = "swarm-consul"
+    end
+    consul.vm.network "private_network", ip: "10.0.0.200"
+    consul.vm.provision "shell", inline: "docker run -d -p 8500:8500 --name=consul progrium/consul -server -bootstrap"
+  end
+
+  config.vm.define "manager1" do |manager1|
+    manager1.vm.hostname = 'manager1'
+    manager1.vm.define "swarm_manager1"
+    manager1.vm.provider :virtualbox do |vb|
+        vb.name = "swarm-manager1"
+    end
+    manager1.vm.network "private_network", ip: "10.0.0.201"
+    manager1.vm.provision "shell", inline: "docker run -d -p 10.0.0.201:4000:4000 swarm manage -H :4000 --replication --advertise 10.0.0.201:4000 consul://10.0.0.200:8500"
+  end
+
+  config.vm.define "manager2" do |manager2|
+    manager2.vm.hostname = 'manager2'
+    manager2.vm.define "swarm_manager2"
+    manager2.vm.provider :virtualbox do |vb|
+        vb.name = "swarm-manager2"
+    end
+    manager2.vm.network "private_network", ip: "10.0.0.202"
+    manager2.vm.provision "shell", inline: "docker run -d -p 10.0.0.202:4000:4000 swarm manage -H :4000 --replication --advertise 10.0.0.202:4000 consul://10.0.0.200:8500"
+  end
+
+  config.vm.define "node1" do |node1|
+    node1.vm.hostname = 'node1'
+    node1.vm.define "swarm_node1"
+    node1.vm.provider :virtualbox do |vb|
+        vb.name = "swarm-node1"
+    end
+    node1.vm.network "private_network", ip: "10.0.0.203"
+    node1.vm.provision "shell", inline: "docker run -d swarm join --advertise=10.0.0.203:2375 consul://10.0.0.200:8500"
+  end
+
+  config.vm.define "node2" do |node2|
+    node2.vm.hostname = 'node2'
+    node2.vm.define "swarm_node2"
+    node2.vm.provider :virtualbox do |vb|
+        vb.name = "swarm-node2"
+    end
+    node2.vm.network "private_network", ip: "10.0.0.204"
+    node2.vm.provision "shell", inline: "docker run -d swarm join --advertise=10.0.0.204:2375 consul://10.0.0.200:8500"
+  end
+
+end

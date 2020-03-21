@@ -323,3 +323,237 @@ https://www.upcloud.com/support/installing-snort-on-ubuntu/
     * performs log analysis, file integrity checking, policy monitoring, rootkit detection, real-time alerting and active response
     * it's intended to be configured to on server-client basis, where very light clients are installed on the critical systems, that then send their reports to the OSSEC server for analysis
     * it's ideal for users with multiple cloud servers for centralized security monitoring
+
+### Snort
+
+- monitors the package data sent and received through a specific network interface
+- NIDS
+  - can catch threats targeting system vulnerabilities using signature-based detection and protocol analysis technologies
+  - can identify the latest attacks, malware infections, compromised systems, and network policy violations
+- lightweight, open source, available on a multitude of platforms
+- can be comfortably installed even on the smallest of cloud server instances
+- capable of much more than just network monitoring
+
+#### Installation
+
+- RPM packages for CentOS7
+- install from source
+
+##### Preparing your server
+
+```
+# Ubuntu 16
+sudo apt install -y gcc libpcre3-dev zlib1g-dev libluajit-5.1-dev libpcap-dev openssl libssl-dev libnghttp2-dev libdumbnet-dev bison flex libdnet
+
+# Debian 9
+sudo apt-get install -y gcc make libpcre3-dev zlib1g-dev libluajit-5.1-dev libpcap-dev openssl libssl-dev libnghttp2-dev libdumbnet-dev bison flex libdnet
+
+# CentOS7
+sudo yum install -y gcc flex bison zlib libpcap pcre libdnet tcpdump
+sudo yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+sudo yum install -y libnghttp2
+# Development packages
+sudo yum install -y zlib-devel libpcap-devel pcre-devel libdnet-devel openssl-devel libnghttp2-devel luajit-devel
+```
+
+##### Installation from RPM packages
+
+Snort uses **Data Acquisition library (DAQ)** to make abstract calls to packet capture libraries.
+
+```
+sudo yum install https://www.snort.org/downloads/snort/daq-2.0.6-1.centos7.x86_64.rpm
+sudo yum install https://www.snort.org/downloads/snort/snort-2.9.12-1.centos7.x86_64.rpm
+```
+
+##### Installation from source
+
+```
+# temporary download folder
+mkdir ~/snort_src && cd ~/snort_src
+
+wget https://www.snort.org/downloads/snort/daq-2.0.6.tar.gz
+
+tar -xvzf daq-2.0.6.tar.gz
+cd daq-2.0.6
+
+./configure && make && sudo make install
+
+cd ~/snort_src
+
+wget https://www.snort.org/downloads/snort/snort-2.9.12.tar.gz
+
+tar -xvzf snort-2.9.12.tar.gz
+cd snort-2.9.12
+
+./configure --enable-sourcefire && make && sudo make install
+```
+
+#### Configuring Snort to run in NIDS mode
+
+```
+# updating the shared libraries
+sudo ldconfig
+
+# good practice to create a symbolic
+sudo ln -s /usr/local/bin/snort /usr/sbin/snort
+```
+
+#### Setting up username and folder structure
+
+```
+sudo groupadd snort
+sudo useradd snort -r -s /sbin/nologin -c SNORT_IDS -g snort
+
+# if installed Snort using yum these directories should have already been added at install
+sudo mkdir -p /etc/snort/rules
+sudo mkdir /var/log/snort
+sudo mkdir /usr/local/lib/snort_dynamicrules
+
+sudo chmod -R 5775 /etc/snort
+sudo chmod -R 5775 /var/log/snort
+sudo chmod -R 5775 /usr/local/lib/snort_dynamicrules
+sudo chown -R snort:snort /etc/snort
+sudo chown -R snort:snort /var/log/snort
+sudo chown -R snort:snort /usr/local/lib/snort_dynamicrules
+
+sudo touch /etc/snort/rules/white_list.rules
+sudo touch /etc/snort/rules/black_list.rules
+sudo touch /etc/snort/rules/local.rules
+
+# Skip if installed with yum
+sudo cp ~/snort_src/snort-2.9.12/etc/*.conf* /etc/snort
+sudo cp ~/snort_src/snort-2.9.12/etc/*.map /etc/snort
+```
+
+Download the detection rules Snort will follow to identify potential threats. Snort provides three tiers of rule sets:
+- **community** - are freely available though slightly limited
+- **registered** - access to your Oink code, which lets the download of the registered users rule sets by registering for free on the website
+- **subscriber** - available to users with an active subscription to Snort services
+
+#### Option 1. Using community rules
+
+```
+wget https://www.snort.org/rules/community -O ~/community.tar.gz
+sudo tar -xvf ~/community.tar.gz -C ~/
+sudo cp ~/community-rules/* /etc/snort/rules
+
+```
+Snort on Ubuntu expects to find a number of different rule files which are not included in the community rules.
+```
+# comment out the unnecessary lines
+sudo sed -i 's/include \$RULE\_PATH/#include \$RULE\_PATH/' /etc/snort/snort.conf
+sudo sed -i 's/include \$RULE\_PATH/#include \$RULE\_PATH/' /etc/snort/snort.conf
+sudo sed -i 's/include \$RULE\_PATH/#include \$RULE\_PATH/' /etc/snort/snort.conf
+```
+
+#### Option 2. Obtaining registered user rules
+
+```
+# replace the oinkcode with personal code
+wget https://www.snort.org/rules/snortrules-snapshot-29120.tar.gz?oinkcode=oinkcode -O ~/registered.tar.gz
+
+# extract the rules over to configuration directory
+sudo tar -xvf ~/registered.tar.gz -C /etc/snort
+```
+
+enabling additional rules can be by uncommenting inclusions at the end of the snort.conf file
+
+#### Configuring the network and rule sets
+
+edit **/etc/snort/snort.conf**:
+```
+# ...
+
+# Setup the network addresses you are protecting
+ipvar HOME_NET server_public_IP/32
+
+# Set up the external network addresses. Leave as "any" in most situations
+ipvar EXTERNAL_NET !$HOME_NET
+
+# Path to your rules files (this can be a relative path)
+var RULE_PATH /etc/snort/rules
+var SO_RULE_PATH /etc/snort/so_rules
+var PREPROC_RULE_PATH /etc/snort/preproc_rules
+
+# Set the absolute path appropriately
+var WHITE_LIST_PATH /etc/snort/rules
+var BLACK_LIST_PATH /etc/snort/rules
+
+# ...
+
+# unified2
+# Recommended for most installs
+output unified2: filename snort.log, limit 128
+
+# ...
+
+# allow to load any custom rules
+include $RULE_PATH/local.rules
+
+# allow community rules
+include $RULE_PATH/community.rules
+```
+
+#### Validating settings
+
+```
+sudo snort -T -c /etc/snort/snort.conf
+# -T enables test mode
+```
+
+Typical problems are missing files or folders can resolved by either:
+  - adding any missed step in the above setup above
+  - by commenting out unnecessary inclusion lines in the snort.conf file
+
+#### Testing the configuration
+
+add the content into the file **etc/snort/rules/local.rules**:
+```
+alert icmp any any -> $HOME_NET any (msg:"ICMP test"; sid:10000001; rev:001;)
+```
+The rule consists of the following parts:
+- action for traffic matching the rule, `alert` in this case
+- traffic protocol like `TCP`, `UDP` or `ICMP`
+- the **source address** and **port**, simply marked as any to include all addresses and ports
+- the **destination address** and **port**, `$HOME_NET` as declared in the configuration and any for port
+- some additional bits
+  - **log message**
+  - **unique rule identifier** (`sid`) which for local rules needs to be 1000001 or higher
+  - **rule version number**
+
+```
+sudo snort -A console -i eth0 -u snort -g snort -c /etc/snort/snort.conf
+```
+- `-A` console options to print the alerts to stdout
+- select **network interface** with the **public IP address** of your server
+  - e.g.: `eth0`
+
+```
+# lists all of your currently configured network interfaces
+ip addr
+```
+
+With Snort up and running ping the server from any other computer. A notice for each ICMP call should appear in the terminal running Snort.
+
+Snort records the alerts to a log: `/var/log/snort/snort.log.timestamp`.
+
+```
+snort -r /var/log/snort/snort.log.    # complete your command by pressing TAB
+```
+
+#### Running Snort in the background
+
+To run Snort on CentOS as a service in the background a startup script should be downloaded from Snort documentation. If Snort was installed using yum, the startup script should be already configured.
+
+```
+# get the startup script
+wget https://www.snort.org/documents/snort-startup-script-for-centos -O ~/snortd
+sudo chmod 755 ~/snortd && sudo mv ~/snortd /etc/init.d/
+
+# reload the system daemon
+sudo systemctl daemon-reload
+
+# start the service (usual systemctl commands: start, stop, restart, status)
+sudo systemctl start snortd
+sudo systemctl status snortd
+```

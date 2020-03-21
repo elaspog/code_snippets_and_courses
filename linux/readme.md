@@ -1,6 +1,19 @@
 
 # Cheatsheet
 
+## Background process
+
+```
+# execute long running job
+# CTRL + Z
+jobs
+bg
+fg
+disown -h %1
+nohup <command>
+<command> &
+```
+
 ## OS Release
 
 ```
@@ -11,4 +24,14 @@ uname -r
 
 cat /proc/version
 cat /etc/issue
+```
+
+## Programs to install
+
+```
+mc
+moc
+vlc
+screen
+tmux
 ```

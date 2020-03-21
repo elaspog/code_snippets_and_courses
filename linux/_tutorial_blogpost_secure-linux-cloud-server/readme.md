@@ -43,7 +43,115 @@ The program uses SSH to make the initial connection between the two systems and 
 
 https://www.upcloud.com/support/managing-linux-user-account-security/
 
-creating a new user accounts and enabling sudo access control
+- creating a new user accounts and enabling sudo access control
+- avoid using the root account for day to day operations
+
+### Adding a new user
+
+```
+# create a new user
+adduser <username>
+
+# unlock the new account by setting the password on CentOS and other Red Hat variants
+passwd <username>
+
+# sudo access control system might not be installed by default on Debian
+apt-get install sudo
+
+# give sudo execution privileges on Ubuntu or Debian servers
+adduser <username> sudo
+
+# adding sudo permissions to users on CentOS
+gpasswd -a <username> wheel
+```
+
+### Disable root login
+
+```
+# on Debian or Ubuntu
+sudo nano /etc/ssh/sshd_config
+
+# on CentOS and other Red Hat variants
+sudo vi /etc/ssh/sshd_config
+```
+**sshd_config**:
+```
+PermitRootLogin no
+```
+
+```
+# CentOS
+sudo systemctl restart sshd
+
+# Ubuntu or Debian
+sudo service ssh restart
+```
+
+### Password policies
+
+```
+# CentOS and other Red Hat variants already have it installed by default
+
+# Ubuntu or Debian
+sudo apt-get install libpam-cracklib
+```
+
+```
+# Ubuntu or Debian
+sudo nano /etc/pam.d/common-password
+
+CentOS and other Red Hat variants
+sudo vi /etc/pam.d/system-auth
+```
+**common-password** or **system-auth**:
+```
+password required pam_cracklib.so retry=3 minlen=8 difok=3 dcredit=1 ucredit=1 lcredit=1
+```
+
+- **retry** defines how many times the user gets to attempt again
+- **minlen** marks the minimum length of the password
+- **difok** checks the maximum number of reused characters compared to the user’s old password
+- password complexity:
+  - **dcredit** is a number of numerals
+  - **ucredit** for upper case characters
+  - **lcredit** the number of lower case characters
+
+### Restrict SSH to specific user group
+
+OpenSSH server can limit user connections by cross-checking that they belong to the allowed group. Useful if:
+- there are multiple users of which some should not need to remote with SSH
+- want the added security
+  - for example when running web service or database with separate users to the own user
+
+```
+# create a new user group
+sudo groupadd sshusers
+
+# add username to the same new group
+sudo gpasswd -a <username> sshusers
+
+# check that your username was added to the group successfully
+groups <username>
+# user : user sudo sshusers
+```
+
+```
+sudo nano /etc/ssh/sshd_config
+sudo vi /etc/ssh/sshd_config
+```
+**sshd_config**:
+```
+AllowGroups sshusers
+```
+
+```
+sudo service ssh restart
+
+sudo systemctl restart sshd
+```
+
+- any user that does not belong to the allowed group will simply be denied access over SSH, even if their password was entered correctly
+- greatly reduces the chance of having a user password brute-forced or guessed with dictionary lists
 
 ## Monitoring login authentication
 

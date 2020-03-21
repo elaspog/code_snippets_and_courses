@@ -71,6 +71,66 @@ https://www.upcloud.com/support/installing-fail2ban-on-ubuntu-14-04/
   - works together with a packet-control system or firewall
   - it is commonly used to block connection attempts after a certain number of failed tries, effectively giving the user a time-out before their are allowed to try again
 
+#### Installation
+
+```
+# Debian
+sudo aptitude install fail2ban
+
+# Ubuntu
+sudo apt-get install fail2ban
+
+# CentOs
+sudo yum install epel-release
+sudo yum install fail2ban
+```
+
+#### Configuration
+
+Jails are the rules which fail2ban applies to any given application or log file.
+
+```
+# make a local configuration
+sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
+
+sudo nano /etc/fail2ban/jail.local
+sudo vi /etc/fail2ban/jail.local
+```
+
+jail configuration:
+```
+[DEFAULT]
+ignoreip = 127.0.0.1/8 ::1
+bantime  = 10m
+findtime = 10m
+maxretry = 5
+
+# ...
+
+[sshd]
+enabled = true
+```
+
+- **ignoreip** - allows you to exclude certain IP addresses from being banned
+- **bantime** - determines how long an offending host will remain blocked until automatically unblocked
+- **findtime** and **maxretry** - counts of which the find time sets the time window for the max retry attempts before the host IP attempting to connect is the blocked
+
+If there is a sendmail service configured on the server, the email notifications can be anabled from Fail2ban by entering email address to the parameter `destemail` and changing the `action = %(action_)s` to `action = %(action_mw)s`.
+
+#### Apply rules or manually modify
+
+```
+# restart the monitor
+sudo systemctl restart fail2ban
+
+sudo iptables -L
+# any banned IP addresses will appear in the specific chains that the failed login attempts occurred at
+
+# Manually ban and unban IP addresses from the services that have defined jails
+# sudo fail2ban-client set <jail> banip/unbanip <ip address>
+sudo fail2ban-client set sshd unbanip 83.136.253.43
+```
+
 ## Use SSH-keys instead of passwords
 
 https://www.upcloud.com/support/using-ssh-keys-for-authentication/

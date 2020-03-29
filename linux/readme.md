@@ -1,6 +1,19 @@
 
 # Cheatsheet
 
+## Simple commands
+
+```
+id
+whoami
+chown
+chgrp
+```
+```
+wget
+curl
+```
+
 ## Background process
 
 ```

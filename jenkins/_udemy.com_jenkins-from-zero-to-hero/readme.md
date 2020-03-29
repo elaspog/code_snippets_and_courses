@@ -9,33 +9,217 @@ https://www.udemy.com/course/jenkins-from-zero-to-hero
 
 ### S01/E2 Introduction to the course
 
+https://jenkins.io
+
+- automation server
+- continuous integration
+- continuous delivery
+
 ### S01/E3 Note: About the Lab
+
+https://www.virtualbox.org/wiki/Downloads  
+https://docs.docker.com/docker-for-mac/  
 
 ### S01/E4 Start building your Lab - Create a Virtual Machine using VirtualBox
 
+CentOS Minimal ISO
+
 ### S01/E5 Start building your Lab - Install CentOs
+
+CentOS 7 64bit
+
+VirtualBox
+- Red Hat 64bit
+- 2GB RAM
+- VDI, Dynamically allocated, 20GB
+
+Settings
+- Network: Bridged Adapter
+  - Ethernet or WiFi (depends on the used connection)
+
+Installation
+- user: jenkins (Admin rights)
 
 ### S01/E6 Start building your Lab - Configure Putty
 
+https://www.putty.org
+
+```
+ip a
+```
+
 ### S01/E7 Install Docker
+
+```
+ping google.com
+
+# install Docker for CentOS
+sudo yum install -y yum-utils device-mapper-persistent-data lvm2
+sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+sudo yum install docker-ce
+
+# start the service
+sudo systemctl start docker
+
+# start the service at boot
+sudo systemctl enable docker
+
+docker ps
+# error with jenkins user
+
+sudo usermod -aG docker jenkins
+whoami
+
+docker ps
+# still error
+logut
+```
+
+```
+docker ps
+# no error this time
+```
 
 ### S01/E8 Install Docker Compose
 
+```
+sudo curl -L "https://github.com/docker/compose/releases/download/1.23.1/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
+
+docker-compose
+```
+
 ### S01/E9 Download the Jenkins Docker Image
+
+https://hub.docker.com/r/jenkins/jenkins/
+
+```
+docker pull jenkins/jenkins
+docker images
+
+docker info | grep -i root
+# <path_to_docker_images_directory>
+
+# sudo du -sh <path_to_docker_images_directory>
+sudo du -sh /var/lib/docker
+```
 
 ### S01/E10 Create a Docker Compose file for Jenkins
 
+```
+mkdir ~/jenkins-data
+cd jenkins-data
+mkdir jenkins_home
+vi docker-compose.yml
+```
+docker-compose.yml:
+```
+version: '3'
+services:
+  jenkins:
+    container_name: jenkins
+    image: jenkins/jenkins
+    ports:
+      - "8080:8080"
+    volumes:
+      - "$PWD/jenkins_home:/var/jenkins_home"
+    networks:
+      - net
+networks:
+  net:
+```
+
 ### S01/E11 Create a Docker Container for Jenkins
+
+```
+ls -l
+id
+# uid 1000
+sudo chown 1000:1000 jenkins_home -R
+# user and the group is jenkins
+```
+
+```
+docker-compose up -d
+docker ps
+# running server
+
+# docker logs -f <container_name>
+docker logs -f jenkins
+# copy the password from the log
+# e.g.: b8a489b11ef743e3895a89dc46a6a13f
+```
+browser:
+```
+<IP>:8080
+# enter password
+```
+
+- install suggested plugins
 
 ### S01/E12 Troubleshooting: Jenkins not coming up?
 
+Issue:
+```
+docker ps # doesn't show the running container
+```
+Debug:
+```
+# shows the container with exit status
+docker ps -a
+
+# shows a volume permission error
+docker logs jenkins
+```
+Reason:
+* inside of the Jenkins container there's a user named "jenkins" which has a Linux uid of 1000
+* the docker volume is mounted to /var/jenkins_home which is the home directory of that user
+* if the directory doesn't have 1000 permissions, then the user won't be able to write/delete files, which causes the container to exit
+
+Resolution:
+* apply 1000 permissions to your jenkins-data folder, and then restart the container
+
+```
+sudo chown 1000:1000 -R ~/jenkins-data
+docker-compose up -d
+```
+
 ### S01/E13 Create a local DNS for your Jenkins server
+
+open the hosts file from the Host OS:
+- `C:\\Windows\\System32\\drivers\\etc\\hosts`
+
+place the IP address of the Guest OS:
+```
+<GUEST_OS_IP> jenkins.local
+```
+browser:
+```
+jenkins.local:8080
+```
+
+- local DNS has been created
 
 ### S01/E14 Note: You should keep using putty
 
+Ubuntu installed as subsystem fo Windows to display fonts better for the course
+
 ### S01/E15 Learn how to work with Docker and Jenkins
 
+```
+docker-compose stop
+docker ps
+docker-compose start
+docker-compose restart jenkins
+docker-compose down
+# deletes everything but the volumes
+docker-compose up -d
+docker ps
+```
+
 ### S01/E16 Bonus
+
+https://www.learndevopsnow.tech/devops-courses/
 
 ## S2 Getting Started with Jenkins
 

@@ -4,6 +4,22 @@
 ## Simple commands
 
 ```
+ls
+cd
+pwd
+find
+echo
+cat
+```
+```
+date
+```
+```
+df
+du
+dd
+```
+```
 id
 whoami
 chown
@@ -12,6 +28,26 @@ chgrp
 ```
 wget
 curl
+```
+```
+export
+alias
+```
+```
+exit
+shutdown
+reboot
+```
+
+## Inline command execution
+
+```
+xargs
+```
+
+```
+NAME=John
+echo "Hello $NAME. Current date and time is $(date)"
 ```
 
 ## Background process

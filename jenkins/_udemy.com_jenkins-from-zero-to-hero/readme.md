@@ -229,17 +229,189 @@ https://www.learndevopsnow.tech/devops-courses/
 
 ### S02/E19 Hands On! Create your first Jenkins Job
 
+task = job
+
+virtual machine:
+```
+java
+# java does not exists in the virtual machine
+
+docker exec -ti jenkins bash
+```
+container:
+```
+java
+# java exists in the container
+java -version
+
+touch /tmp/hello
+cat /tmp/hello
+exit
+```
+virtual machine:
+```
+cat /tmp/hello
+# No such file or directory
+```
+
+Everything running in Jenkins will run within the container.
+
+- Nem Item
+  - Freestyle project: `my-first-job`
+    - Build step
+      - Execute shell
+```
+echo Hello World
+```
+- Build Now
+- Console Output
+  - `Hello World` is printed
+- Configure
+
 ### S02/E20 Keep playing with your first Job
+
+```
+docker exex -ti jenkins bash
+date
+```
 
 ### S02/E21 Redirect your first Job's output
 
+1. Configure job (Execute shell):
+```
+NAME=John
+echo "Hello, $NAME. Current date and time is $(date)" > /tmp/info
+```
+2. Build job
+
+In container:
+```
+cat /tmp/info
+# file exists
+exit
+```
+In virtual machine:
+```
+cat /tmp/info
+# file does not exists
+```
+In container:
+```
+rm -Rf /tmp/info
+```
+
 ### S02/E22 Learn how to execute a bash script from Jenkins
+
+**script.sh**
+
+virtual machine:
+```
+docker ps
+docker exec -ti jenkins bash
+vi
+# no vi program in container
+exit
+```
+script.sh:
+```
+#!/bin/bash
+
+FIRST_NAME=$1
+LAST_NAME=$2
+
+echo "Hello, $FIRST_NAME $LAST_NAME"
+```
+virtual machine:
+```
+chmod +x ./script.sh
+./script.sh
+./script.sh John Doe
+
+docker cp script.sh jenkins:/tmp/script.sh
+docker exec -ti jenkins bash
+/tmp/script.sh Jane Doe
+```
+Configure
+```
+FIRST=Jack
+LAST=Doe
+/tmp/script.sh $FIRST $LAST
+```
 
 ### S02/E23 Add parameters to your Job
 
+- Configure
+  - General
+    - This project is parametrized
+      - Add parameter
+        - String parameter
+          - Name: `FIRST_NAME`
+          - Default Value: `Ricardo`
+      - Add parameter
+        - String parameter
+          - Name: `SECOND_NAME`
+          - Default Value: `André`
+  - Build
+```
+echo "Hello, $FIRST_NAME $SECOND_NAME"
+```
+
 ### S02/E24 Learn how to create a Jenkins list parameter with your script
 
+- Configure
+  - General
+    - This project is parametrized
+      - Add parameter
+        - Choice parameter
+          - Name: `LASTNAME`
+          - Choices:
+```
+Smith
+Gonzalez
+Doe
+```
+  - Build
+```
+echo "Hello, $FIRST_NAME $SECOND_NAME $LASTNAME"
+```
+
 ### S02/E25 Add basic logic and boolean parameters
+
+**script.sh**
+
+- Configure
+  - General
+    - This project is parametrized
+      - Add parameter
+        - Boolean parameter
+          - Name: `SHOW`
+
+script.sh:
+```
+#!/bin/bash
+
+NAME=$1
+LASTNAME=$2
+SHOW=$3
+
+if [ "$SHOW" = "true" ]; then
+  echo "Hello, $NAME $LASTNAME"
+else
+  echo "If you want to see the name, please mark the show option"
+fi
+```
+virtual machine:
+```
+./script.sh Ricardo Gonzalez false
+./script.sh Ricardo Gonzalez true
+
+docker cp script.sh jenkins:/tmp/script.sh
+docker exec -ti jenkins bash
+cat /tmp/script.sh
+
+# Parameters from Jenkins
+/tmp/script.sh $FIRST_NAME $LASTNAME $SHOW
+```
 
 ## S3 Jenkins & Docker
 

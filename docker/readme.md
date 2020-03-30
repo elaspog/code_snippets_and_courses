@@ -1,6 +1,13 @@
 
 # Cheatsheet
 
+## Docker simple commands
+
+```
+docker ps
+docker cp script.sh <container_name>:/tmp/script.sh
+```
+
 ## Stop and Remove all Docker containers
 
 ```

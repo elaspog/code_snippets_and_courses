@@ -1,6 +1,8 @@
 
 # Plugins
 
+* **vagrant-reload**: reboots the VM
+* **vagrant-scp**: copy files into VM
 * **vagrant-vbguest**: checks VirtualBox guest version on the box and if required will update it to the current version of host machine VirtualBox
 * **vagrant-disksize**: provides capability to set VM disk size
 * **vagrant-proxyconf**: proxy settings for Vagrant
@@ -45,6 +47,23 @@ end
 ```
 
 ## Plugin settings
+
+### vagrant-scp
+
+```
+vagrant plugin install vagrant-scp
+
+vagrant scp host_os/path/to/file :~/file
+vagrant scp host_os/path/to/file :guest_os/path/to/file
+```
+
+### vagrant-reload
+
+```
+config.vm.provision :shell, path: "prescript.sh"
+config.vm.provision :reload
+config.vm.provision :shell, path: "postscript.sh"
+```
 
 ### vagrant-disksize
 

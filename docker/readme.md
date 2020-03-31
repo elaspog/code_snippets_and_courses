@@ -20,11 +20,11 @@ docker rm $(docker ps -a -q)
 ```
 docker-compose up
 docker-compose up -d
+docker-compose up --detach
 docker-compose start
 docker-compose stop
 docker-compose restart <service>
 docker-compose down
 # deletes everything but the volumes
-
-docker ps
+docker-compose ps
 ```

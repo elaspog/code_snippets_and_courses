@@ -17,6 +17,7 @@ date
 ```
 df
 du
+# sudo du -sh /home/vagrant 
 dd
 ```
 ```

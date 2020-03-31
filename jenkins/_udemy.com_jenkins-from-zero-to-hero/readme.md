@@ -5,6 +5,8 @@ https://www.udemy.com/course/jenkins-from-zero-to-hero
 
 ## S1 Introduction & Installation
 
+**Vagrantfile**  
+
 ### S01/E1 Resources for this section
 
 ### S01/E2 Introduction to the course
@@ -105,6 +107,8 @@ sudo du -sh /var/lib/docker
 ```
 
 ### S01/E10 Create a Docker Compose file for Jenkins
+
+**docker-compose.yml**  
 
 ```
 mkdir ~/jenkins-data

@@ -29,7 +29,7 @@ Vagrant.configure("2") do |config|
   config.vm.provision "shell", keep_color: true, run: "always", inline: <<-SHELL
     docker pull jenkins/jenkins
     mkdir -p jenkins-data/jenkins_home
-    cp /vagrant/E10/docker-compose.yml /home/vagrant/jenkins-data/docker-compose.yml
+    cp /vagrant/E10/jenkins-data/docker-compose.yml /home/vagrant/jenkins-data/docker-compose.yml
     sudo chown 1000:1000 /home/vagrant/jenkins-data/jenkins_home -R
   SHELL
 

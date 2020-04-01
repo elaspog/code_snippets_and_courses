@@ -18,6 +18,8 @@ docker rm $(docker ps -a -q)
 ## Docker Compose
 
 ```
+docker-compose build
+docker-compose up --build
 docker-compose up
 docker-compose up -d
 docker-compose up --detach

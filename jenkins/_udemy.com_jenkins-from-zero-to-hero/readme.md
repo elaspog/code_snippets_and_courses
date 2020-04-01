@@ -419,21 +419,200 @@ cat /tmp/script.sh
 
 ## S3 Jenkins & Docker
 
+**Vagrantfile**  
+
 ### S03/E26 Resources for this section
 
 ### S03/E27 Docker + Jenkins + SSH - I
 
+**Dockerfile**  
+
+Remote execution via SSH.
+
+```
+mkdir centos7
+cd centos7
+vi Dockerfile
+```
+Dockerfile:
+```
+FROM centos
+
+RUN yum -y install openssh-server
+
+RUN useradd remote_user && \
+    echo "1234" | passwd remote_user --stdin && \
+    mkdir /home/remote_user/.ssh && \
+    chmod 700 /home/remote_user/.ssh
+```
+
 ### S03/E28 Troubleshooting: remote-host image not building correctly?
+
+**Dockerfile.centos7**  
+**Dockerfile.centos8**  
+
+Possible solutions for outdated CentOS problem:
+
+- **CentOS7:** Use the old image:
+```
+FROM centos:7
+```
+
+- **CentOS8:** Change Dockerfile content from this:
+```
+RUN useradd remote_user && \
+    echo "1234" | passwd remote_user  --stdin && \ # Passwd command is deprecated on centos:8
+    mkdir /home/remote_user/.ssh && \
+    chmod 700 /home/remote_user/.ssh
+```
+to this:
+```
+RUN useradd remote_user && \
+    echo "remote_user:1234" | chpasswd && \
+    mkdir /home/remote_user/.ssh && \
+    chmod 700 /home/remote_user/.ssh
+```
 
 ### S03/E29 Docker + Jenkins + SSH - II
 
+**Dockerfile.centos7**  
+**Dockerfile.centos8**  
+
+Virtual machine, `centos7` folder:
+```
+ssh-keygen -f remote-key
+```
+Dockerfile:
+```
+COPY remote_key.pub /home/remote_user/.ssh/authorized_keys
+
+RUN chown remote_user:remote_user -R /home/remote_user/.ssh/ && \
+    chmod 600 /home/remote_user/.ssh/authorized_keys
+
+RUN /usr/sbin/ssd-keygen
+
+CMD /usr/sbin/sshd -D
+```
+
 ### S03/E30 Docker + Jenkins + SSH - III
+
+**docker-compose.yml**  
+
+add lines to `docker-compose.yml`:
+```
+  remote_host:
+    container_name: remote-host
+    image: remote-host
+    build:
+      context: centos7
+    networks:
+      - net
+```
+
+Virtual machine, `~` folder:
+```
+docker-compose build
+docker images
+docker ps
+docker-compose up -d
+```
+
+From Virtual Machine SSH into `remote_host` from `jenkins` container:
+```
+docker exec -it jenkins bash
+
+ssh remote_user@remote_host
+# password: 1234
+exit # remote_host container
+
+exit # jenkins container
+```
+
+Test SSH into `remote_host` from `jenkins` with key file:
+```
+cd centos7
+docker cp remote-key jenkins:/tmp/remote-key
+docker exec -it jenkins bash
+
+ls /tmp
+ssh -i /tmp/remote-key remote_user@remote_host
+```
+
+- The `remote_host` and `jenkins` from `docker-compose.yml` file can be used as host names while SSHing from other containers, but not from the Virtual Machine.
+
+To configure this in Vagrant Virtual Machine:
+```
+vagrant plugin install vagrant-scp
+vagrant scp S03/E29/Dockerfile.centos7 :/home/vagrant/Dockerfile
+vagrant scp S03/E30/docker-compose.yml :/home/vagrant/docker-compose.yml
+```
 
 ### S03/E31 Learn how to install Jenkins Plugins (SSH Plugin)
 
+Test internet connection of the VM and container:
+```
+pint google.com
+```
+
+Install:
+- Manage Jenkins
+  - Manage Plugins
+    - Available tab
+      - search for SSH
+      - mark SSH
+      - Install without restart
+    - Restart Jenkins when installation is complete and no jobs are running
+
+Verify:
+- Manage Jenkins
+  - Manage Plugins
+    - Installed tab
+      - Check SSH Plugin
+
 ### S03/E32 Integrate your Docker SSH server with Jenkins
 
+- **Configure SSH in Jenkins:**
+  - Manage Jenkins
+    - Configure System
+      - SSH remote host
+        - Add
+          - hostname: `remote_host`
+          - port: `22`
+          - credentials
+            - ADD
+- **If the `Add` button not working:**
+  - Credentials: `Jenkins`
+    - Local Crendentials
+      - Add Credentials
+        - Kind: `SSH Username with private key`
+          - username
+          - private key
+        - OK
+- **Set credentials and test connection:**
+  - Manage Jenkins
+    - Configure System
+      - SSH sites
+        - hostname: `remote_host`
+        - port: `22`
+        - credentials: `remote_user`
+    - Check connection
+    - Save
+
 ### S03/E33 Run your a Jenkins job on your Docker remote host through SSH
+
+- **Run Task over SSH:**
+  - New Item: `remote-task`
+  - Freestyle project
+    - Build
+      - Execute shell script on remote host using ssh
+        - Command
+        ```
+        NAME=Ricardo
+        echo "Hello, $NAME. Current date and time is $(date)" > /tmp/remote-file
+        ```
+  - Build Now
+
+After the execution is finished the file will be created on `remote_host`.
 
 ## S4 Jenkins & AWS
 

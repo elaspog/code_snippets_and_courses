@@ -1,0 +1,45 @@
+
+unless Vagrant.has_plugin?("vagrant-reload")
+  puts 'Installing vagrant-reload Plugin...'
+  system('vagrant plugin install vagrant-reload')
+end
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "bento/centos-7"
+
+  config.vm.network "private_network", ip: "10.10.10.10"
+  config.vm.network "forwarded_port", guest: 8080, host: 8080
+
+  # config.vm.provision :docker
+  # config.vm.provision :docker_compose, yml: "/home/vagrant/jenkins-data/docker-compose.yml", rebuild: true, run: "always"
+
+  # install docker manually
+  config.vm.provision "shell", keep_color: true, run: "always", inline: <<-SHELL
+    sudo yum install -y yum-utils device-mapper-persistent-data lvm2
+    sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+    sudo yum install -y docker-ce
+    sudo systemctl start docker
+    sudo systemctl enable docker
+    sudo usermod -aG docker vagrant
+    sudo curl -L "https://github.com/docker/compose/releases/download/1.23.1/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+    sudo chmod +x /usr/local/bin/docker-compose
+  SHELL
+
+  # set environment
+  config.vm.provision "shell", keep_color: true, run: "always", inline: <<-SHELL
+    docker pull jenkins/jenkins
+    mkdir -p jenkins-data/jenkins_home
+    cp -R /vagrant/E30/jenkins-data/* /home/vagrant/jenkins-data
+    cp /vagrant/E29/Dockerfile.centos7 /home/vagrant/jenkins-data/centos7/Dockerfile
+    sudo chown 1000:1000 /home/vagrant/jenkins-data/jenkins_home -R
+  SHELL
+
+  config.vm.provision :reload
+
+  config.vm.provision "shell", keep_color: true, run: "always",
+    privileged: false, inline: <<-SHELL
+    cd /home/vagrant/jenkins-data/
+    docker-compose up --detach
+  SHELL
+
+end

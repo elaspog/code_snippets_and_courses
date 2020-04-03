@@ -622,29 +622,347 @@ After the execution is finished the file will be created on `remote_host`.
 
 ### S04/E36 Create a MySQL server on Docker
 
+**docker-compose.yml**  
+
+https://hub.docker.com/_/mysql/
+
+Add the following lines to `docker-compose.yml`:
+```
+  db_host:
+    container_name: db
+    image: mysql:5.7
+    environment:
+      - "MYSQL_ROOT_PASSWORD=1234"
+    volumes:
+      - "$PWD/db_data:/var/lib/mysql"
+    networks:
+      - net
+```
+
+From `jenkins-data` folder of the Virtual Machine:
+```
+docker-compose up -d
+docker ps
+docker logs -f db
+docker exec -ti db bash
+
+mysql -u root -p
+```
+In MySQL shell:
+```
+show databases;
+exit
+```
+In container:
+```
+exit
+```
+
 ### S04/E37 Install MySQL Client and AWS CLI
+
+**Dockerfile**  
+
+```
+docker ps
+docker exec -ti remote-host bash
+
+mysql
+# command not found
+
+aws
+# command not found
+
+exit
+```
+
+Add the following lines to `Dockerfile`:
+```
+RUN yum -y install mysql
+
+RUN curl -O https://bootstrap.pypa.io/get-pip.py && \
+    python get-pip.py && \
+    pip install awscli --upgrade
+```
+
+From `jenkins-data` folder of the Virtual Machine::
+```
+docker-compose build
+docker-compose up -d
+docker exec -ti remote-host bash
+
+mysql
+# command works
+
+aws
+# command works
+```
 
 ### S04/E38 Create a MySQL Database
 
+in Virtual Machine:
+```
+docker ps
+cd jenkins-data
+cat docker-compose.yml
+
+docker exec -ti remote-host bash
+mysql -u root -h db_host -p
+# password: 1234
+```
+
+in MySQL CLI:
+```
+show databases;
+create database testdb;
+use testdb;
+
+create table info (name varchar(20), lastname varchar(20), age int(2));
+show tables;
+desc info;
+
+insert into info values ('Ricardo', 'Gonzalez', 21);
+select * from info;
+```
+
 ### S04/E39 Create a S3 Bucket on AWS
+
+https://aws.amazon.com/console/
+
+- Services
+  - S3
+    - Create bucket
 
 ### S04/E40 Create a user (IAM) for AWS authentication
 
+- IAM
+  - Users
+    - Add user
+      - Programatic access
+        - Attach existing policies directly
+          - AmazonS3FullAccess
+            - Download .csv
+
 ### S04/E41 Learn how to take a backup and upload it manually to S3
+
+```
+docker ps
+docker exec -ti remote-host bash
+```
+
+Dump Database:
+```
+mysqldump -root -h db_host -p testdb > /tmp/db.sql
+
+cat /tmp/db.sql
+```
+
+Configure AWS CLI via environment variables:
+```
+export AWS_ACCESS_KEY_ID=<aws_access_key_id>
+export AWS_SECRET_ACCESS_KEY=<aws_secret_access_key>
+
+aws s3 cp /tmp/db.sql s3://jenkins-mysql-backup/db.sql
+```
 
 ### S04/E42 Automate the backup and upload process with a shell script
 
+**script.sh**  
+
+```
+docker exec -ti remote-host bash
+vi /tmp/script.sh
+```
+
+`script.sh`:
+```
+#/bin/bash
+
+DATE=$(date +%H-%M-%S)
+DB_HOST=$1
+DB_PASSWORD=$2
+DB_NAME=$3
+
+mysqldump -u root -h $DB_HOST -p$DB_PASSWORD $DB_NAME > /tmp/db-$DATE.sql
+```
+
+in container:
+```
+chmod +x /tmp/script.sh
+/tmp/script.sh db_host 1234 testdb
+cat /tmp/db.sql
+```
+
 ### S04/E43 Integrate your script with AWS CLI
+
+**script.sh**  
+
+modify and add the following lines to `script.sh`:
+```
+BACKUP=db-$DATE.sql
+
+AWS_SECRET=$4
+BUCKET_NAME=$5
+
+mysqldump -u root -h $DB_HOST -p$DB_PASSWORD $DB_NAME > /tmp/$BACKUP && \
+export AWS_ACCESS_KEY_ID=<aws_access_key_id> && \
+export AWS_SECRET_ACCESS_KEY=$AWS_SECRET && \
+echo "Uploading your $BACKUP backup" && \
+aws s3 cp /tmp/db-$DATE.sql s3://$BUCKET_NAME/$BACKUP
+```
 
 ### S04/E44 Learn how to manage sensitive information in Jenkins (Keys, Passwords)
 
+- Credentials
+  - Stores scoped to Jenkins: Jenkins
+    - Global credentials (unrestricted)
+      - Add credential
+        - Kind: Secret text
+        - ID: `MYSSQL_PASSWORD`
+        - Secret: `1234`
+        - OK
+      - Add credential
+        - Kind: Secret text
+        - ID: `AWS_SECRET_KEY`
+        - Secret: `<aws_secret_key>`
+        - OK
+
 ### S04/E45 Create a Jenkins job to upload your DB to AWS
+
+- New item
+  - Freestyle project: `backup-to-aws`
+    - This project is parametrized
+      - Add parameter: String Parameter
+        - Name: `MYSQL_HOST`
+        - Default value: `db_host`
+      - Add parameter: String Parameter
+        - Name: `DATABASE_NAME`
+        - Default value: `testdb`
+      - Add parameter: String Parameter
+        - Name: `AWS_BUCKET_NAME`
+        - Default value: `jenkins-mysql-backup`
+    - Build Enviroment
+      - Use secret text(s) or file(s)
+    - Bindings
+      - Add: Secret text
+        - Variable: `MYSQL_PASSWORD`
+        - Credentials: `MYSQL_PASSWORD`
+      - Add: Secret text
+        - Variable: `AWS_SECRET_KEY`
+        - Credentials: `AWS_SECRET_KEY`
+    - Build
+      - Add build step: Execute shell script on remote host using ssh
+        - SSH site: `remote_user@remote-host:22`
+        - Command: `/tmp/script.sh $MYSQL_HOST $MYSQL_PASSWORD $DATABASE_NAME $AWS_SECRET_KEY $BUCKET_NAME`
+    - Save
 
 ### S04/E46 Execute your Job and be happy!
 
+- Build with Parameters
+  - Build
+
+Sensitive information are masked.
+
 ### S04/E47 Persist the script on the remote host
 
+**docker-compose.yml**  
+
+Check file in container:
+```
+docker ps
+docker exec -ti remote-host bash
+cat /tmp/script.sh
+# file exists
+exit
+```
+Delete container:
+```
+docker rm -fv remote-host
+docker ps
+```
+Recreate container:
+```
+docker-compose up -d
+docker ps
+docker exec -ti remote-host bash
+cat /tmp/script.sh
+# no file
+exit
+```
+
+- Jenkins
+  - Build with parameters
+
+Add the following lines to `docker-compose.yml`:
+```
+  volumes:
+    - "$PWD/aws-s3.sh:/tmp/script.sh"
+```
+
+In virtual machine:
+```
+docker-compose up -d
+docker exec -ti remote-host bash
+cat /tmp/script.sh
+# file exists
+exit
+```
+Delete container:
+```
+docker rm -fv remote-host
+docker exec -ti remote-host bash
+```
+
+Recreate container:
+```
+docker-compose up -d
+docker exec -ti remote-host bash
+cat /tmp/script.sh
+# file exists
+exit
+``````
+
+Give execute permissions to the file:
+```
+chmod +x aws-s3.sh
+docker exec -ti remote-host bash
+ls -l /tmp/
+# file execution right changed
+```
+
+- Jenkins
+  - Build with parameters:
+    - MYSQL_HOST: `db_host`
+    - DATABASE_NAME: `testdb`
+    - AWS_BUCKET_NAME: `jenkins-mysql-backup`
+  - Build
+
 ### S04/E48 Reuse your Job to upload different DB's to different buckets
+
+In Virtual Machine:
+```
+docker exec -ti remote-host bash
+mysql -u root -h db_host -p1234
+```
+In MySQL CLI:
+```
+create database test2;
+show databases;
+exit
+```
+
+- AWS
+  - S3
+    - Create bucket: `mysql-jenkins-2`
+
+
+- Jenkins
+  - Build with parameters:
+    - MYSQL_HOST: `db_host`
+    - DATABASE_NAME: `test2`
+    - AWS_BUCKET_NAME: `mysql-jenkins-2`
+  - Build
+
+Jenkins now uploads another dumped database into a different S3 bucket.
 
 ## S5 Jenkins & Ansible
 

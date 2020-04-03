@@ -12,7 +12,9 @@ docker cp script.sh <container_name>:/tmp/script.sh
 
 ```
 docker stop $(docker ps -a -q)
+
 docker rm $(docker ps -a -q)
+docker rm -fv <host_name>
 ```
 
 ## Docker Compose

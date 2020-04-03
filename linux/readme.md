@@ -13,11 +13,12 @@ cat
 ```
 ```
 date
+date +%Y%m%d-%H%M%S
 ```
 ```
 df
 du
-# sudo du -sh /home/vagrant 
+# sudo du -sh /home/vagrant
 dd
 ```
 ```

@@ -4,6 +4,8 @@
 ```
 vagrant up
 
+vagrant suspend
+
 vagrant halt
 
 vagrant reload

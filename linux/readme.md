@@ -5,10 +5,14 @@
 
 ```
 sudo adduser username
+sudo useradd username
 sudo passwd username
 sudo usermod -aG wheel username
+sudo usermod -aG sudo username
 sudo userdel username
 sudo userdel -r username
+sudo deluser username
+sudo deluser --remove-home username
 ```
 
 ### adduser

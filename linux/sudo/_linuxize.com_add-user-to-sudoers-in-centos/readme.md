@@ -7,7 +7,8 @@ https://linuxize.com/post/how-to-add-user-to-sudoers-in-centos/
 - Options:
   - Add the user to the `sudoers` file
   - Add the user to the sudo group defined in the `sudoers`
-    - Members of the `wheel` group are granted with sudo privileges
+    - Members of the `sudo` group are granted with sudo privileges (Debian, Ubuntu)
+    - Members of the `wheel` group are granted with administrative and sudo privileges (CentOS)
       - Works on **RedHat** based distributions like **CentOS** and **Fedora**
 
 
@@ -25,16 +26,22 @@ https://linuxize.com/post/how-to-add-user-to-sudoers-in-centos/
   EDITOR=nano visudo
   ```
 
-## Adding User to the wheel Group
+## Adding User to the sudo/wheel Group
 
 Members of `wheel` group are **able to run all commands** via `sudo` and **prompted to authenticate** themselves with their password when using `sudo`.
 
 Set:
 ```
+# Centos
 usermod -aG wheel username
+
+# Debian / Ubuntu
+usermod -aG sudo username
 ```
 Tets:
 ```
+su - username
+
 sudo whoami
 # root
 

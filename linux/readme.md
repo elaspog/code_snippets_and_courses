@@ -1,6 +1,26 @@
 
 # Cheatsheet
 
+## Users
+
+```
+sudo adduser username
+sudo passwd username
+sudo usermod -aG wheel username
+sudo userdel username
+sudo userdel -r username
+```
+
+### adduser
+
+Creates `/home/username` directory.
+Copies files from `/etc/skel` to the user’s home directory.
+
+### userdel
+
+If the user was granted sudo privileges it will be removed from the `wheel` group, as well as from any other groups the user was a member of.
+
+
 ## Background process
 
 ```

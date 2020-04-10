@@ -1,0 +1,92 @@
+version: '3.7'
+
+services:
+
+   revproxy:
+     container_name: revproxy
+     build: nginx_revproxy
+     depends_on:
+       - wp1
+       - wp2
+     restart: always
+     ports:
+       - 80:80
+     networks:
+       - mynet
+
+   db1:
+     container_name: db1
+     image: mysql:5.7
+     volumes:
+       - "${PWD}/data_mysql1:/var/lib/mysql"
+       - "/tmp/db_site1:/tmp"
+     restart: always
+     environment:
+       MYSQL_ROOT_PASSWORD: somewordpress
+       MYSQL_DATABASE: wordpress
+       MYSQL_USER: wordpress
+       MYSQL_PASSWORD: wordpress
+     networks:
+       - mynet
+
+   db2:
+     container_name: db2
+     image: mysql:5.7
+     volumes:
+       - "${PWD}/data_mysql2:/var/lib/mysql"
+       - "/tmp/db_site2:/tmp"
+     restart: always
+     environment:
+       MYSQL_ROOT_PASSWORD: somewordpress
+       MYSQL_DATABASE: wordpress
+       MYSQL_USER: wordpress
+       MYSQL_PASSWORD: wordpress
+     networks:
+       - mynet
+
+   wp1:
+     container_name: wp1
+     depends_on:
+       - db1
+     image: wordpress:latest
+     ports:
+       - "8081:80"
+     restart: always
+     environment:
+       WORDPRESS_DB_HOST: db1:3306
+       WORDPRESS_DB_USER: wordpress
+       WORDPRESS_DB_PASSWORD: wordpress
+       WORDPRESS_DB_NAME: wordpress
+     volumes:
+       - "${PWD}/data_wordpress1:/var/www/html"
+       - "/tmp/wp_site1:/tmp"
+     networks:
+       - mynet
+
+   wp2:
+     container_name: wp2
+     depends_on:
+       - db2
+     image: wordpress:latest
+     ports:
+       - "8082:80"
+     restart: always
+     environment:
+       WORDPRESS_DB_HOST: db2:3306
+       WORDPRESS_DB_USER: wordpress
+       WORDPRESS_DB_PASSWORD: wordpress
+       WORDPRESS_DB_NAME: wordpress
+     volumes:
+       - "${PWD}/data_wordpress2:/var/www/html"
+       - "/tmp/wp_site2:/tmp"
+     networks:
+       - mynet
+
+volumes:
+    data_mysql1:
+    data_mysql2:
+    data_wordpress1:
+    data_wordpress2:
+
+networks:
+    mynet:

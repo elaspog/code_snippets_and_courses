@@ -647,3 +647,196 @@ curl -I http://example.com/test.img
   - image/*
   - text/*
   - video/*
+
+## S05 Reverse Proxy
+
+### S05/L24 Introduction to Reverse Proxy (New)
+
+Reverse Proxy is type of proxy server which retrieves resources on behalf of a client from one or more servers
+
+- NginX server is sitting between the client and application server
+- The application server is not directly exposed to the client
+- DDoS protection
+- Web Application Firewall
+- Caching
+
+
+- Hides the existence of the original backend server
+- Can protect the back-end servers from web-based attacks, DOS and many more
+- Can provide great caching functionality
+- Can optimize the content by compressing it
+- Can act as a SSL Termination proxy
+- Request Routing and many more
+
+
+both on `172.17.0.2` (reverse proxy) and `172.17.0.3` (application server):
+```
+ifconfig
+tail -f /var/log/nginx/access.log
+```
+browser `172.17.0.1`:
+```
+example.com
+```
+both on `172.17.0.2` (reverse proxy) and `172.17.0.3` (application server):
+```
+# both /var/log/nginx/access.log files ha a new entry
+```
+
+### S05/L25 Configuring NGINX as a Reverse Proxy (New)
+
+**proxy_pass** directive forwards the request to the proxied servers specified along with the directive
+
+```
+location / {
+  proxy_pass http://192.168.10.50;  # any request comes to / gets forwarded to the proxied server
+}
+```
+
+request based routing:
+
+```
+location /admin {
+  proxy_pass http://192.168.10.50;
+}
+location /login {
+  proxy_pass http://10.50.30.20;
+}
+```
+
+```
+docker ps
+# docker container running the application
+docker images
+docker commit <container_id> centos-nginx
+docker images
+# new image is present
+
+docker run -dit -p 8080:80 centos-nginx:latest /bin/bash
+docker ps
+
+docker exec -it <container_id_of_application> bash
+service nginx status
+service nginx restart
+service nginx restart
+```
+
+`/var/www/websites/index.html` in container:
+```
+<html>
+<h3>This is our backend server</h3>
+</html>
+```
+
+browser:
+```
+example.com:8080
+```
+console:
+```
+docker exec -it <container_id_of_revproxy> bash
+```
+
+`/etc/nginx/conf.d/kplabs.conf` in reverse proxy container:
+```
+server {
+  listen        80;
+  server_name   example.com;
+
+  location / {
+    proxy_pass http://172.17.0.3;
+  }
+}
+```
+in both `172.17.0.2` (reverse proxy) and `172.17.0.3` (application server) containers:
+```
+nginx -t
+service nginx restart
+tail -f /var/log/nginx/access.log
+```
+browser:
+```
+example.com
+```
+
+### S05/L26 Need for X-Real-IP (New)
+
+- Must be done when running as Reverse Proxy or as Load Balancer
+- Ensures that the Web server gets the IP address of the client and not the reverse proxy
+  - e.g.: whitelisting based on IP addresses
+
+`/etc/nginx/conf.d/kplabs.conf` in container:
+```
+server {
+  listen        80;
+  server_name   example.com;
+
+  location / {
+    proxy_pass       http://172.17.0.3;
+    proxy_set_header X-Real-IP $remote_addr;
+  }
+}
+```
+in `172.17.0.2` (reverse proxy) container:
+```
+nginx -t
+service nginx restart
+```
+
+In `/etc/nginx/nginx.conf` the value of the `log_format` can be replaced from `$remote_addr` to `$http_x_real_ip`.
+
+### S05/L27 Proxy Host Header (New)
+
+The reverse proxy NginX will keep the `GET` and remove the `Host` from the Request which might be a problem if multiple websites are hosted.
+
+backend docker container:
+```
+yum -y install tcpdump
+
+# listens at interface eth0 for port 80 traffic then copies the traffic to the file
+tcpdump -A -vvvv -s 9999 -i eth0 port 80 > /tmp/headers
+```
+in host:
+```
+curl http://example.com
+```
+backend docker container:
+```
+nano /tmp/headers
+# no Host in header
+```
+
+`/etc/nginx/conf.d/kplabs.conf` in reverse proxy container:
+```
+server {
+  listen        80;
+  server_name   example.com;
+
+  location / {
+    proxy_pass       http://172.17.0.3;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header Host $host;
+  }
+}
+```
+in `172.17.0.2` (reverse proxy) container:
+```
+nginx -t
+service nginx restart
+```
+in `172.17.0.3` (backend server) container:
+```
+echo > /tmp/headers
+tcpdump -A -vvvv -s 9999 -i eth0 port 80 > /tmp/headers
+```
+in host:
+```
+curl http://example.com
+```
+backend docker container:
+```
+# Stop tcpdump
+
+nano /tmp/headers
+# Host in header: example.com
+```

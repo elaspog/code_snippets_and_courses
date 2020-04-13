@@ -840,3 +840,460 @@ backend docker container:
 nano /tmp/headers
 # Host in header: example.com
 ```
+
+## S06 Load Balancers
+
+### S06/L28 Introduction to Load Balancers
+
+- case 1: All-in-One Box
+  - Web Server (NGINX)
+  - Web Application (Wordpress)
+  - Database (MySQL)
+  - if one component has issues, everything goes down
+- case 2: Load Balancer
+  - Backend Servers
+  - load is distributed across multiple backend instances
+
+### S06/L29 Simple Load Balancer with NGINX Docker - Practical
+
+Load Balancers: HAProxy, AWS Elastic Load Balancer, NginX
+
+```
+docker ps
+# 2 containers running
+# a backend (centos:-nginx:latest)
+# an nginx (centos:6) used as reverse proxy in the previous section
+
+docker images
+
+docker run -dit -p 8081:80 centos-nginx:latest /bin/bash
+# new backend is running
+
+docker exec -it <new_backend_container_id> bash
+```
+`/var/www/websites/index.html` from container:
+```
+This is our container 3
+```
+container:
+```
+service nginx restart
+ifconfig
+# eth0: inet addr: 172.17.0.4
+```
+browser:
+```
+example.com:8081
+```
+
+```
+docker exec -it <reverse_proxy_container_id> bash
+```
+`/etc/nginx/conf.d/kplabs.conf` from container:
+```
+upstream backend {
+  server 172.17.0.3;
+  server 172.17.0.4;
+}
+
+server {
+  listen        80;
+  server_name   example.com;
+
+  location / {
+    proxy_pass       http://backend;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header Host $host;
+  }
+}
+```
+container:
+```
+nginx -t
+service nginx restart
+```
+in host:
+```
+curl http://example.com
+# request from backend 1
+
+curl http://example.com
+# request from backend 2
+```
+
+### S06/L30 Health Checks in Load Balancer (New)
+
+host:
+```
+curl http://example.com
+# request from backend 1
+
+curl http://example.com
+# request from backend 2
+
+# ... this repeats
+# Round Robin is experienced
+
+docker exec -it <a_backend_container_id> bash
+```
+container:
+```
+service stop nginx
+# one of the backend container stops working
+```
+host:
+```
+curl http://example.com
+# request from backend 1
+
+curl http://example.com
+# request from backend 1
+
+# all requests are served by a single container
+```
+container:
+```
+service start nginx
+```
+host:
+```
+curl http://example.com
+# request from backend 1
+
+curl http://example.com
+# request from backend 1
+
+# nginx will wait a certain amount of time before trying to use again the bad backed even the backend is fixed
+
+curl http://example.com
+# request from backend 2 (again after the waiting time)
+```
+
+- Types of health checks
+  - Active Health Check (available only in NginX Plus)
+  - Passive Health Check
+
+### S06/L31 Understanding Passive Health Monitoring (New)
+
+- Passsive Health Check
+  - the communication between client and the upstream server is monitored by nginx
+  - if the upstream server is not responding or rejecting connections, the passive health check will consider the server to be unhealthy
+  - there is timeout for the response from the backend server
+  - there is waiting time for retry after the backend server was identified broken
+
+### S06/L32 Parameter Configurations in Passive Health Checks (New)
+
+host:
+```
+docker exec -it <load_balancer_container_id> bash
+```
+`/etc/nginx/conf.d/kplabs.conf` from container:
+```
+upstream backend {
+  server 172.17.0.3;
+  server 172.17.0.4 max_fails=2 fail_timeout=30s;
+}
+
+server {
+  listen        80;
+  server_name   example.com;
+
+  location / {
+    proxy_pass       http://backend;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header Host $host;
+  }
+}
+```
+container:
+```
+nginx -t
+service nginx restart
+```
+
+`max_fails=2 fail_timeout=30s` - if backend fails to respond or gives connection timeout 2 times within 30 seconds then the load balancer stops sending any traffic to the server for the next 30 seconds
+
+### S06/L33 Active vs Passive Health Monitoring
+
+- **Passive Health Monitoring**
+  - checks the responds from the backend
+  - tries to figure out the status of the server from the timeouts and missing responses
+  - retries to send request after time
+- **Active  Health Monitoring**
+  - tries to contact the backend in every N seconds
+    - if gets response it assumes the server is up
+      - HTTP response code: 200, 300
+    - if does not get response or gets bad HTTP response codes it assumes the server is down
+      - HTTP response code (other than 2XX or 3XX): 404, 500
+  - never send request to the server which is down
+
+### S06/L34 Understanding Active Health Monitoring (New)
+
+- Active Health Check in NginX Plus only
+- sends special Health Check GET request
+- 2XX and 3XX HTTP response code indicate healthy state
+
+`/etc/nginx/conf.d/kplabs.conf` from load balancer container:
+```
+upstream backend {
+  server        127.0.0.1:8080;
+  zone backend  64k;
+}
+
+server {
+  listen        80 default_server;
+  server_name   _;
+
+  location / {
+    proxy_pass  http://backend;
+    health_check;   # indicates active health check
+  }
+}
+```
+host:
+```
+docker exec -it <load_balancer> bash
+service nginx status
+tail -f /var/log/nginx/access.log
+# every 5 seconds a new GET request is sent to check the health status
+```
+- NginX GUI shows the good status
+```
+service nginx stop
+```
+- NginX GUI shows the bad status
+```
+service nginx stop
+```
+- NginX GUI shows the good status
+
+`/etc/nginx/conf.d/kplabs.conf` from container:
+```
+server {
+  location / {
+    proxy_pass  http://backend;
+    health_check interval=10;   # indicates active health check
+  }
+}
+```
+host:
+```
+docker exec -it <load_balancer> bash
+service nginx restart
+tail -f /var/log/nginx/access.log
+# every 10 seconds a new GET request is sent to check the health status
+```
+
+### S06/L35 Match Condition (New)
+
+#### Simple file check
+
+`/etc/nginx/conf.d/kplabs.conf` from load balancer container:
+```
+upstream backend {
+  server        127.0.0.1:8080;
+  zone backend  64k;
+}
+
+server {
+  listen        80 default_server;
+  server_name   _;
+
+  location / {
+    proxy_pass  http://backend;
+    health_check interval=10 uri=/test.txt;   # set endpoint
+  }
+}
+```
+load balancer container:
+```
+nginx -t
+service nginx restart
+tail -f /var/log/nginx/access.log
+# the GET request is sent to /test.txt
+# but 404 error happend, because there is no such file
+
+touch /usr/share/nginx/html/test.txt
+echo Hi > /usr/share/nginx/html/test.txt
+tail -f /var/log/nginx/access.log
+# the GET request is sent to /test.txt
+# server identified as good
+```
+
+#### Healthcheck string - non match
+
+`/etc/nginx/conf.d/kplabs.conf` from load balancer container:
+```
+...
+match server_test {
+  status 200-399;
+  body !~ maintenence;  # if the content is not "maintenence" then consider the status good
+}
+server {
+  listen        80 default_server;
+  server_name   _;
+
+  location / {
+    proxy_pass  http://backend;
+    health_check interval=10 uri=/test.txt match=server_test;
+  }
+}
+```
+load balancer container:
+```
+nginx -t
+service nginx restart
+tail -f /var/log/nginx/access.log
+# server identified as good
+
+echo maintenence > /usr/share/nginx/html/test.txt
+# server identified as bad
+```
+
+#### Healthcheck string - exact match
+
+`/etc/nginx/conf.d/kplabs.conf` from load balancer container:
+```
+...
+match server_test {
+  status 200-399;
+  body ~ "Welcome to nginx";  # if the content is "maintenence" then consider the status good
+}
+...
+```
+load balancer container:
+```
+nginx -t
+service nginx restart
+tail -f /var/log/nginx/access.log
+# server identified as good
+```
+
+### S06/L36 Shared Memory & Active Health Monitoring
+
+- Every worker process has different Zone file maintaining the state table
+  - one worker can consider an upstream server down, but another one may consider it up
+- **Shared Memory based architecture**
+  - there is only one Zone file
+  - the Zone file is read and written by all worker processes
+
+In Active Health Monitoring a common Zone file can be used.
+
+`/etc/nginx/conf.d/web.conf` from load balancer container:
+```
+upstream backend {
+  server 52.4.121.83;
+  server 52.3.20.56;
+  zone backend 64k;   # the shared memory
+}
+
+server {
+  server_name example.com;
+  listen 80;
+
+  location / {
+    proxy_pass  http://backend;
+    health_check;
+  }
+}
+```
+
+### S06/L37 Load Balancer - Server Weights (New)
+
+- It's possible to distribute traffic unequal between servers to match the physical properties of the system, e.g.:
+  - 20% of the traffic goes to the server with 1 GB RAM
+  - 80% of the traffic goes to the server with 4 GB RAM
+
+`/etc/nginx/conf.d/web.conf` from load balancer container:
+```
+upstream backend {
+  server 172.17.0.3;
+  server 172.17.0.4 weight=2;
+}
+
+server {
+  listen 80;
+  server_name example.com;
+
+  location / {
+    proxy_pass  http://backend;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header Host $host;
+  }
+}
+```
+load balancer container:
+```
+nginx -t
+service nginx restart
+```
+host:
+```
+curl http://example.com
+# request from backend 1
+
+curl http://example.com
+# request from backend 2
+
+curl http://example.com
+# request from backend 2
+```
+
+### S06/L38 Least Connect Method
+
+- Setup
+  - Different execution time / resource consumption on:
+    - `big.php` as `b.php` - 20 sec
+    - `small.php` as `s.php` - 1 sec
+  - Two servers with the same configuration
+  - Client Requests:
+    - A (`b.php`): runs on Server 1 for 20 sec
+    - B (`s.php`): runs on Server 2 for 1 sec
+    - C
+      - running it with Round Robin strategy on Server 1 is not
+      - better to run on Server 2
+- **Least Connect** - forward the request to the server which has least number of active connections
+  - this routes request C to Server 2
+
+`/etc/nginx/conf.d/web.conf` from load balancer container:
+```
+upstream backend {
+  least_conn;       # specify load balancing algorithm (Round Robin is the default)
+  server 52.4.121.83;
+  server 52.3.20.56 weight=2;
+}
+
+server {
+  server_name example.com;
+  listen 80;
+  location / {
+    proxy_pass  http://backend/test.php;
+  }
+}
+```
+load balancer container:
+```
+nginx -t
+service nginx restart
+```
+Server 1 (`big.php`):
+```
+tailf /var/log/nginx/*
+```
+Server 2 (`small.php`):
+```
+tailf /var/log/nginx/*
+```
+run **Apache Bench**:
+```
+# ab -n 20 -c <reverse_proxy_ip>/
+ab -n 20 -c 10 52.6.237.228/
+```
+Server 1 (`big.php`):
+```
+# 5 requests
+```
+Server 2 (`small.php`):
+```
+# 15 requests
+```

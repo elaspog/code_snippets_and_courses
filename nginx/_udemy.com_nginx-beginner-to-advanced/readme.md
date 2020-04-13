@@ -327,3 +327,323 @@ Webserver Administrator can choose to allow or deny a request method
   - 500 Internal Server Error
   - 503 Service Unavailable
   - 504 Gateway TimeOut
+
+## S04 Getting Started with NginX
+
+### S04/L18 Installing Nginx on Docker (new)
+
+```
+docker --version
+docker images
+docker run -dit 80:80 centos:6 /bin/bash
+docker ps
+docker exec -it <container_id> bash
+```
+container:
+```
+npm -qa | grep nginx
+yum -y install epel-release
+yum -y install nginx
+
+service nginx status
+service nginx start
+cd /etc/nginx
+vi nginx.conf
+# exit
+service nginx status
+netstat -ntlp
+# running on port 80
+CTRL+P and Q  # exit container
+docker ps
+```
+browser:
+```
+127.0.0.1
+# default nginx page
+```
+
+**Modify host file:**
+
+`c:\Windows\System32\Drivers\etc\hosts`:
+```
+127.0.0.1 example.com
+```
+
+### S04/L19 Understanding NGINX Architecture (New)
+
+- NginX Configuration File
+- Master Process
+  - Reads the configuration file
+  - Launches Worker processes
+- Worker Processes
+  - Responsible for interaction with the clients
+
+#### worker_processes
+
+`/etc/nginx/nginx.conf`:
+```
+worker_processes auto;    # the amount of worker processes, depends on CPU core number
+```
+console:
+```
+ps -ef --forest | grep nginx
+nginx: master process /usr/sbin/nginx -c /etc/nginx/nginx.conf
+\_ nginx: worker process
+\_ nginx: worker process
+
+cat /proc/cpuinfo
+# number of processors
+```
+
+`/etc/nginx/nginx.conf`:
+```
+worker_processes 4;
+```
+console:
+```
+service nginx reload
+ps -ef --forest | grep nginx
+# 4 worker processes
+```
+
+#### user
+
+- not related with the master process
+- defines which user of worker processes start with
+
+`/etc/nginx/nginx.conf`:
+```
+user nginx;               # will be inherited by worker processes
+```
+
+Master process will start with the user that starts the service (e.g. `root` user in this case).
+
+console:
+```
+ps -ef --forest | grep nginx
+root  ... nginx: master process /usr/sbin/nginx -c /etc/nginx/nginx.conf
+nginx ... \_ nginx: worker process
+nginx ... \_ nginx: worker process
+```
+
+#### error_log
+
+`/var/log/nginx/error.log` - contains information related to nginx
+
+`/etc/nginx/nginx.conf`:
+```
+error_log /var/log/nginx/error.log;
+```
+
+console:
+```
+cat var/log/nginx/error.log
+# empty if no error in nginx
+# bad configuration will result errors in this file
+```
+
+#### access_log
+
+`/var/log/nginx/access.log` - contains information related to clients which are connecting to the webserver.
+
+#### pid
+
+process id of the master process
+
+`/etc/nginx/nginx.conf`:
+```
+pid /var/run/nginx/pid;   # process id of the master process
+```
+console:
+```
+cat /var/run/nginx/pid
+ps -ef --forest | grep nginx
+root  ... nginx: master process /usr/sbin/nginx -c /etc/nginx/nginx.conf
+nginx ... \_ nginx: worker process
+nginx ... \_ nginx: worker process
+```
+
+### S04/L20 NGINX Configuration - Events and HTTP (New)
+
+#### events
+
+`/etc/nginx/nginx.conf`:
+```
+events {
+  worker_connections 1024;  # how many connections a worker can have
+}
+```
+
+#### http
+
+- **access_log** - The format is defined by `log_format`
+  - IP address
+  - timestamp
+  - request type
+  - response code
+  - user agent
+- **log_format** - uses variables e.g.:
+  - $remote_add - IP of the client
+  - etc.
+
+```
+# put error into file
+service nginx restart
+# error_log file changes
+
+# test configuration file
+nginx -t
+```
+
+### S04/L21 NGINX Configuration - Include directive (New)
+
+#### include
+
+Includes all the contents. Makes easier to read and debug the configuration.
+
+`/etc/nginx/nginx.conf`:
+```
+include /etc/nginx/mime.types;
+```
+
+### S04/L22 Creating Virtual Hosts in NGINX (New)
+
+`/usr/share/nginx/html/index.html` is the default page NginX shows.
+
+`/etc/nginx/nginx.conf`:
+```
+include /etc/nginx/conf.d/*.conf;
+```
+
+`/etc/nginx/conf.d/default.conf`:
+```
+# change the port from 80 to 8080
+# listen 80 default_server;
+listen 8080 default_server;
+# ...
+root /usr/share/nginx/html;   # path of the index.html
+```
+
+console:
+```
+netstat -nltp
+nginx -t
+service nginx restart
+# nginx listening on 8080
+
+# change back to default configuration
+```
+
+`virtual.conf`:
+```
+server {
+  listen        8080;                           # defines port where nginx listens on
+  listen        somename:8080;
+  server_name   somename alias another.alias;   # will be present in the hostname header of the client
+
+  location / {
+    root        html;                           # directory in which the website is stored
+    index       index.html index.htm;           # first file found will be laded by default
+  }
+}
+```
+
+console:
+```
+cp virtual.conf kplabs.conf
+
+# modify the file names to avoid loading them by the pattern
+mv default.conf default.conf.bak
+mv ssl.conf ssl.conf.bak
+mv virtual.conf virtual.conf.bak
+
+mkdir -p /var/www/websites
+cd /var/www/websites
+touch index.html
+
+cd /etc/nginx/conf.d
+nginx -t
+service nginx restart
+```
+
+`kplabs.conf`:
+```
+server {
+  listen        80;
+  server_name   example.com;
+
+  location / {
+    root        /var/www/websites/;
+    index       index.html index.htm;
+  }
+}
+```
+
+`/var/www/websites/index.html`:
+```
+Welcome to our first website based on nginx :)
+```
+
+- multiple server block can be defined in a configuration file
+
+### S04/L23 MIME Types (New)
+
+- **MIME** - Multi-Purpose Internet Mail Extensions
+  - Images
+  - HTML files
+  - Video files
+  - Audio files
+  - Documents
+  - etc.
+- Web Server also sends the MIME filetype when sends a file to a client
+- Web browser might have certain type of extensions for MIME filetypes installed
+
+```
+curl -I https://www.sans.org/media/score/checklist/FirewallChecklist.pdf
+# Content-Type: application/pdf
+
+curl -I http://example.com/seed.jpg
+# Content-Type: image/jpeg
+```
+
+- Content-Type header indicated the media type of a specific resource
+  - application/pdf
+  - text/html
+
+`/etc/nginx/nginx.conf`:
+```
+include /etc/nginx/mime.types;
+default_type application/octet-stream;    # for files that don't meet the extensions from the included MIME types
+```
+
+**default_type application/octet-stream** - tells the browser to directly download it and not process it
+
+`include /etc/nginx/mime.types`:
+```
+types {
+  text/html   html htm shtml;
+  image/jpeg  jpeg jpg;
+  ...
+  video/mp4   mp4;
+  ...
+}
+```
+
+console:
+```
+cat /etc/nginx/mime.types | grep octet-stream
+# file types specific to operating systems
+
+wget ftp://distro.ibiblio.com/pub/linux/distributions/damnsmall/current/pcmciafloppy.img
+mv pcmciafloppy.img test.img
+
+curl -I http://example.com/test.img
+# Content-Type: applicatiom/octet-stream
+```
+
+- Common MIME types (main_type/sub_type):
+  - application/*
+  - audio/*
+  - image/*
+  - text/*
+  - video/*

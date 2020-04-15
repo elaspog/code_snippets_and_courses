@@ -1297,3 +1297,659 @@ Server 2 (`small.php`):
 ```
 # 15 requests
 ```
+
+## S07 The Caching Subsystem
+
+### S07/L39 Introduction to HTTP Caching (New
+
+- "Local copy is better"
+- Middleware cache server is responsible for caching
+  - can be a software or a dedicated server
+  - cache server has it's own storage
+    - can be memory or hard disk based
+  - if the resource was cached it's served from the middleware's storage
+
+Firefox browser:
+```
+about:cache
+```
+
+- Caching:
+  - reduces the overhead of server's resources
+  - decreases the network bandwidth
+  - pages are loaded much faster
+
+### S07/L40 Understanding the HTTP Cache Control Headers (New)
+
+- problem:
+  - a newer version of the cached file might exists at the webserver
+  - the older cached version is served instead of the newer version
+- **Cache-Control headers**
+  - specifies directives for caching mechanisms
+  - are used to define caching policies, e.g.:
+    - don't store any kind of cache at all
+    - store the cache, but verify with webserver whether file is modified
+    - store the cache for a given time
+
+```
+curl -I http://dexter.kplabs.in/myseed.jpg
+# no cache-control header
+# will be stored in the cache
+
+curl -I http://dexter.kplabs.in/nostore.jpg
+# Cache-Control: no-store
+# will not be stored in the cache
+```
+
+- Cache-Control
+  - e.g.:
+    - `no-store`
+    - `no-cache`
+    - `must-revalidate`
+    - `public`
+    - `private`
+  - can be combined e.g.:: `no-store`, `no-cache`, `must-revalidate`
+
+### S07/L41 Cache Control Headers no-store (New)
+
+Chrome browser:
+```
+http://dexter.kplabs.in/myseed.jpg
+about:cache
+# file can be seen as cached
+
+http://dexter.kplabs.in/nostore.jpg
+about:cache
+# file can't be seen as cached
+```
+
+### S07/L42 Adding no-store response header in Nginx (New)
+
+in nginx container:
+```
+cd /var/www/websites
+wget http://dexter.kplabs.in/myseed.jpg
+wget http://dexter.kplabs.in/nostore.png
+
+# rename to avoid confusion
+mv myseed.jpg dockerseed.jpg
+mv nostore.jpg dockernostore.png
+```
+host:
+```
+curl -I http://dexter.kplabs.in/dockerseed.jpg
+# no Cache-Control header
+
+curl -I http://dexter.kplabs.in/dockernostore.png
+# no Cache-Control header
+```
+`/etc/nginx/conf.d/kplabs.conf` from nginx container:
+```
+server {
+  listen       80;
+  server_name  example.com;
+
+  location / {
+    root       /var/www/websites/;
+    index      index.html index.htm;
+  }
+  location ~ \.(png) {
+    root       /var/www/websites/;
+    add_header Cache-Control no-store;
+  }
+}
+```
+in nginx container:
+```
+nginx -t
+service nginx restart
+```
+host/browser:
+```
+curl -I http://dexter.kplabs.in/dockerseed.jpg
+# no Cache-Control header
+# cached by browser
+
+curl -I http://dexter.kplabs.in/dockernostore.png
+# Cache-Control header is present
+# not cached by browser
+```
+
+### S07/L43 If-Modified-Since Header (New)
+
+1. Cache Server gets a **GET** request for a file
+2. Cache Server asks the Web Server if the file was modified
+  - while sending the timestamp of the cached version in `If-Modified-Since` header
+3. if the file on the Web Server
+  - was not modified:
+    4. Web Server sends back to Cache Server: **304 Not Modified** without the file
+    5. Cache Server serves the request from it's cache to the Client
+  - was modified:
+    4. Web Server sends back to Cache Server: **200 OK** and the file
+    5. Cache Server caches the file and serves it to the Client
+
+```
+curl -I dexter.kplabs.in/dockerseed.jpg
+# has Last-Modified header with timestamp
+```
+container:
+```
+tail -f /var/log/nginx/access.log
+```
+browser:
+```
+dexter.kplabs.in/dockerseed.jpg
+# cached by web browser
+# the last modified date is stored with the file
+```
+container:
+```
+# HTTP 304 - because there was no modification since
+# CTRL+C
+
+tcpdump -A -i eth0 'port 80'
+```
+browser:
+```
+dexter.kplabs.in/dockerseed.jpg
+```
+container:
+```
+# If-Modified-Since: ...
+...
+# 304 Not Modified
+```
+
+### S07/L44 Introduction to Cache-Control Headers
+
+- a response can be cached in
+  - Browser (Client side caching)
+  - Cache Server (Intermediate proxy)
+- Expires header can't specify where to cache
+- a modern browsers will read the `Cache-Control` and ignore `Expires` headers
+  - `Expires` is used for HTTP/1.0 compatibility
+
+`/etc/nginx/conf.d/web.conf`:
+```
+server {
+  server_name   example.com;
+
+  location / {
+    root    /var/www/websites/example;
+    index   index.html index.html;
+  }
+
+  location ~ \.(png) {
+    root    /var/www/websites/example;
+    expires 1h;
+  }
+
+  location ~ \.(txt) {
+    root    /var/www/websites/example;
+    expires -1;
+  }
+}
+```
+
+```
+curl -I http://example.com/logo.png
+# Expires: Fri, 20 Nov 2015 01:02:49 GMT
+# Cache-Control: max-age=3600
+```
+
+#### Date and Expires Header
+
+```
+Date:      Wed, 14 Apr 2015 20:00:00 GMT
+Expires:   Thu, 15 Apr 2015 20:00:00 GMT
+# expiration: 24 hours
+```
+
+#### Cache-Control Headers
+
+```
+Cache-Control: no-store         # do not cache anywhere
+Cache-Control: no-cache         # can be cached, but must be revalidated first with the origin server
+Cache-Control: max-age=0        # maximum age in seconds for the document is considered valid
+Cache-Control: s-maxage=0       # for intermediate proxy node and not for the client
+
+Cache-Control: must-revalidate  # similar to no-cache, but cache must revalidate the document after expired
+Pragma: no-cache                # similar to no-cache, but for HTTP/1.0 applications for browsers
+```
+
+### S07/L45 The Q Factor
+
+- **Content Negotiation**
+  - when a video needs to be streamed:
+    - for mobile client the lowest quality is best
+    - for desktop browsers the highest quality is best
+  - the client defines which version it needs the most
+- **Q Parameter Scale**
+  - 1 Most preferred
+  - 0 Least Preferred
+
+```
+Accept-Languate: de,en-gb;q=0.8,en;q=0.7
+Accept: text/html,application/xhtml+xml,application/xml;q=0.8,*/*;q=0.8
+```
+
+- if no `q` parameter is associated, then the `q=1`
+- `*/*` means *any other*
+
+```
+# start the Wireshark
+# in browser open: example.com/mywebsite.html
+# stop the packet capture in Wireshark
+# in Wireshark follow the stream: GET /mywebsite.html HTTP/1.1
+
+GET /MYKPZ.PNG HTTP/1.1
+Accept: image/png, image/svg+xml, image/*;q=0.8, */*;q=0.5
+```
+
+### S07/L46 Cache Control no-cache and must-re validate
+
+- `no-store` - file can't be stored either in the public cache or the private cache
+- `no-cache` - free to store the file, but needs revalidation from the origin server before serving, whether the file is fresh or not
+
+`/etc/nginx/conf.d/web.conf`:
+```
+server {
+  server_name   example.com;
+
+  location / {
+    root    /var/www/websites/example;
+    index   index.html index.html;
+  }
+
+  location ~ \.(png) {
+    root    /var/www/websites/example;
+  }
+
+  location ~ \.(html) {
+    root    /var/www/websites/example;
+    add_header Cache-Control no-store;
+  }
+}
+```
+host:
+```
+curl -I example.com/web.html
+# Cache-Control: no-store
+```
+browser:
+```
+example.com/web.html
+about:cache
+# CTRL+F: web.html
+# no cached version
+```
+`/etc/nginx/conf.d/web.conf`:
+```
+  ...
+  location ~ \.(html) {
+    root    /var/www/websites/example;
+    add_header Cache-Control no-cache;
+  }
+  ...
+```
+host:
+```
+service nginx reload
+curl -I example.com/web.html
+# Cache-Control: no-cache
+```
+browser:
+```
+example.com/web.html
+about:cache
+# CTRL+F: web.html
+# there is cached version
+```
+- when opening `web.html` the browser will have to revalidate with the server to make sure it has the latest version of this file due to `no-cache`
+- `must-revalidate` forces the revalidation of the cached file at the origin server
+  - cache should not serve the cached document until revalidated
+  - 503 error is thrown if the cache can't revalidate, e.g.: origin server is down
+  - if `must-revalidate` is not present, lot of webservers will serve the file when the origin server is down
+
+`/etc/nginx/conf.d/web.conf`:
+```
+  ...
+  location ~ \.(html) {
+    root    /var/www/websites/example;
+    add_header Cache-Control no-cache;
+    add_header Cache-Control must-revalidate;
+  }
+  ...
+```
+
+`/etc/nginx/conf.d/web.conf`:
+```
+  ...
+  location ~ \.(html) {
+    root    /var/www/websites/example;
+    add_header Cache-Control private max-age=200;   # private cache control
+    add_header Cache-Control public s-maxage=500;   # public cache control
+    add_header Cache-Control must-revalidate;
+  }
+  ...
+```
+
+### S07/L47 Cache Control Headers max-age & s-max-age
+
+- browser is considered as private cache
+- organisation's cache server is considered as public cache server
+
+```
+curl -I https://example.com/web.html
+# no Cache-Control or Expire header
+```
+`/etc/nginx/conf.d/web.conf`:
+```
+server {
+  server_name   example.com;
+
+  location / {
+    root    /var/www/websites/example;
+    index   index.html index.html;
+  }
+
+  location ~ \.(png) {
+    root    /var/www/websites/example;
+  }
+
+  location ~ \.(html) {
+    root    /var/www/websites/example;
+    add_header Cache-Control private max-age=120;
+  }
+}
+```
+host:
+```
+service nginx reload
+curl -I example.com/web.html
+# Cache-Control: max-age=120
+```
+`/etc/nginx/conf.d/web.conf`:
+```
+...
+  location ~ \.(html) {
+    root    /var/www/websites/example;
+    add_header Cache-Control no-store;
+  }
+...
+```
+host:
+```
+service nginx reload
+curl -I example.com/web.html
+# Cache-Control: no-store
+```
+browser:
+```
+https://example.com/web.html
+```
+- the file is not in browser cache either
+
+`/etc/nginx/conf.d/web.conf`:
+```
+...
+  location ~ \.(html) {
+    root    /var/www/websites/example;
+    add_header Cache-Control max-age=120;
+    add_header Cache-Control no-store;
+    add_header Cache-Control s-maxage=200;
+  }
+...
+```
+host:
+```
+service nginx reload
+curl -I example.com/web.html
+# Cache-Control: max-age=120
+# Cache-Control: no-store
+# Cache-Control: s-maxage=200
+```
+- private cache server will store the document for `max-age=120` seconds
+- public cache server will store the document for `s-maxage=200` seconds
+- if `s-maxage` is not present but `max-age` is present
+  - both the private and private brower cache will store the document for `max-age=120` seconds
+- HTTP/1.0 had just the `Expires` header and did not have this flexibility
+
+### S07/L48 Cache Time & Browser Analysis
+
+`/etc/nginx/conf.d/web.conf`:
+```
+server {
+  server_name   example.com;
+
+  location / {
+    root    /var/www/websites/example;
+    index   index.html index.html;
+  }
+
+  location ~ \.(png) {
+    root    /var/www/websites/example;
+    expires 1h;
+  }
+
+  location ~ \.(txt) {
+    root    /var/www/websites/example;
+    expires -1;
+  }
+}
+```
+host:
+```
+curl -I http://example.com/logo.png
+# Cache-Control: max-age=3600
+```
+browser:
+```
+about:cache
+# number of entries
+http://example.com/img1.png
+# number of entries was increased by 1
+```
+
+### S07/L49 Expires Header
+
+host:
+```
+curl -I http://example.com/logo.png
+# no Expires header
+
+curl -I http://example.com/sample.txt
+# no Expires header
+```
+`/etc/nginx/conf.d/web.conf`:
+```
+server {
+  server_name   example.com;
+
+  location / {
+    root    /var/www/websites/example;
+    index   index.html index.html;
+  }
+
+  location ~ \.(png) {
+    root    /var/www/websites/example;
+    expires 48h;
+  }
+}
+```
+host:
+```
+service nginx reload
+
+curl -I http://example.com/logo.png
+# Expires header (in 48 hours)                  # HTTP/1.0
+# Cache-Control: max-age=172800 (in 48 hours)   # HTTP/1.1
+
+curl -I http://example.com/sample.txt
+# no Expires header
+```
+
+`/etc/nginx/conf.d/web.conf`:
+```
+...
+  location ~ \.(txt) {
+    root    /var/www/websites/example;
+    expires 1h;
+  }
+...
+```
+host:
+```
+service nginx reload
+
+curl -I http://example.com/sample.txt
+# Expires header (in 48 hours)                  # HTTP/1.0
+# Cache-Control: max-age=172800 (in 48 hours)   # HTTP/1.1
+```
+
+`/etc/nginx/conf.d/web.conf`:
+```
+...
+  location ~ \.(txt) {
+    root    /var/www/websites/example;
+    expires -1;     # do not cache
+  }
+...
+```
+host:
+```
+service nginx restart
+
+curl -I http://example.com/sample.txt
+# Expires has the same value as Data
+# Cache-Control: no-cache
+```
+
+### S07/L50 Understanding the Keep Alive connections
+
+- HTTP works based on TCP protocol
+- in TCP  before any data can be sent a handshake must happen to open the connection, then close it
+- a browser can send a lot of HTTP requests to a single server
+  - multiple connection
+    - TCP handshake is a CPU consuming process
+    - multiple handshakes can delay the process
+  - persistent connection
+    - handshake happens only once
+    - `Keep-Alive` header
+      - HTTP/1.0 - optional
+      - HTTP/1.1 - mandatory
+
+```
+# Header
+Connection: Keep-Alive
+```
+
+`/etc/nginx/nginx.conf`:
+```
+http {
+
+  ...
+
+  sendfile            on;
+  # tcp_nopush        on;
+
+  keepalive_timeout   0;
+  # keepalive_timeout 65;
+}
+```
+
+#### Without Keep-Alive
+
+`/etc/nginx/nginx.conf`:
+```
+http {
+  ...
+  keepalive_timeout   0;
+}
+```
+host:
+```
+service nginx restart
+```
+
+1. Wireshark
+  - start the packet capture
+2. Firefox browser:
+  ```
+  # open the inspector mode
+  example.com/mindex.html
+  # 2 HTTP requests were made
+  ```
+3. Wireshark
+  - close the packet capture
+  - Filter: `tcp.stream eq 0`
+    - Follow TCP stream on HTTP GET /mindex.html
+  - Filter: `tcp.stream eq 1`
+    - Follow TCP stream on HTTP GET /mindex.png
+  - 2 tcp streams with TCP handshakes
+
+#### With Keep-Alive
+
+`/etc/nginx/nginx.conf`:
+```
+http {
+  ...
+  keepalive_timeout   65;
+}
+```
+host:
+```
+service nginx restart
+```
+
+1. Wireshark
+  - start the packet capture
+2. Firefox browser:
+  ```
+  # open the inspector mode
+  example.com/mindex.html
+  # 2 HTTP requests were made
+  ```
+3. Wireshark
+  - close the packet capture
+  - Filter: `tcp.stream eq 0`
+    - Follow TCP stream
+      - HTTP GET /mindex.html
+      - HTTP GET /mindex.png
+  - 1 tcp streams with TCP handshakes
+
+```
+# the same package capture on klowledgeportal.in
+# 104 requests were sent
+```
+
+### S07/L51 Date & Expires Header
+
+- Expire Header defines how long the resource should be stored in cache memory
+```
+Expires: Thu, 18 Nov 2015 23:53:39 GMT
+```
+- Date Header tells about the current GMT date according to the Server
+```
+Date: Thu, 17 Nov 2015 23:53:39 GMT
+```
+- The date is in GMT not in local date of the server
+  - if the server time is out of sync, the client can calculate with a simple subtraction from `Expires` and `Date` headers how long to store the resource in the cache
+
+```
+curl -I http://example.com/logo.png
+
+# HTTP/1.0
+Date: Thu, 17 Nov 2015 23:53:39 GMT
+Expires: Thu, 18 Nov 2015 23:53:39 GMT
+
+# HTTP/1.1
+Cache-Control: max-age=172800
+
+curl -I http://example.com/sample.txt
+Date: Thu, 17 Nov 2015 23:53:39 GMT
+Expires: Thu, 18 Nov 2015 01:53:39 GMT
+Cache-Control: max-age=3600
+```
+
+- the maximum amount of time the RFC recomends is 1 year

@@ -1953,3 +1953,92 @@ Cache-Control: max-age=3600
 ```
 
 - the maximum amount of time the RFC recomends is 1 year
+
+## S08 Static Assets
+
+### S08/L52 Understanding Static Assets
+
+- Reverse proxy don't have to forward the requests for non dynamically generated contents to upstream server
+  - static assets e.g.: `jpeg`, `css`, `js`, (`html`)
+- Nginx is efficient in serving static assets
+
+### S08/L53 Configure Reverse Proxy with Static Assets
+
+#### Serve static assets with upstream server (bad pattern)
+
+reverse proxy `/etc/nginx/conf.d/kp.conf`:
+```
+server {
+  server_name kp.in;
+
+  location / {
+    proxy_pass http://192.168.189.139;
+    proxy_set_header Host $host;
+  }
+}
+```
+upstream server `/etc/nginx/conf.d/kp.conf`:
+```
+server {
+  server_name kp.in;
+
+  location / {
+    root /var/www/websites/kp;
+  }
+}
+```
+upstream server:
+```
+ls /var/www/websites/kp
+# files: php, html, js, css, images
+
+tail -f /var/log/nginx/*
+```
+browser:
+```
+http://kp.in
+```
+upstream server:
+```
+# lot of GET request in log for a single page load
+```
+
+#### Serve static assets with reverse proxy (good pattern)
+
+- copy all static files to reverse proxy under `/var/www/assets` folder
+
+reverse proxy `/etc/nginx/conf.d/kp.conf`:
+```
+server {
+  server_name kp.in;
+
+  location / {
+    proxy_pass http://192.168.189.139;
+    proxy_set_header Host $host;
+  }
+  location ~* \.(css|js|jpe?g|JPG|png){
+    root /var/www/assets;
+    try_files $uri $uri/;
+  }
+}
+```
+reverse proxy:
+```
+nginx -t
+service nginx reload
+```
+
+- delete the static assets from the upstream server
+
+upstream server:
+```
+tail -f /var/log/nginx/*
+```
+browser:
+```
+http://kp.in
+```
+upstream server:
+```
+# much less GET requests in log for a single page load then previously
+```

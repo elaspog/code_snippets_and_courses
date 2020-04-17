@@ -2042,3 +2042,459 @@ upstream server:
 ```
 # much less GET requests in log for a single page load then previously
 ```
+
+## S09 Access Control
+
+### S09/L53 White Listing
+
+- useful when only one IP address is allowed to access a resource
+  - e.g.: the admin page
+
+Example:
+```
+location /admin {
+  allow 172.18.10.5;
+  deny all;
+}
+```
+
+#### Simple solution
+
+`/etc/nginx/conf.d/web.conf`:
+```
+server {
+  server_name example.com;
+
+  location / {
+    root /var/www/websites/example;
+  }
+  location /admin {
+    root /var/www/websites/example;
+    index index.html;
+    allow 127.0.0.1;
+    allow 192.168.189.137;
+    deny all;
+  }
+}
+```
+host:
+```
+nginx -f
+service nginx reload;
+curl example.com/admin/
+# Secret admin page
+```
+
+#### Better way (with include)
+
+`/etc/nginx/conf.d/web.conf`:
+```
+  ...
+  location /admin {
+    root /var/www/websites/example;
+    index index.html;
+    include /etc/nginx/conf.d/WhiteList;
+    deny all;
+  }
+  ...
+```
+`/etc/nginx/conf.d/WhiteList`:
+```
+allow 127.0.0.1;
+allow 192.168.189.137;
+```
+host:
+```
+nginx -f
+service nginx reload;
+curl example.com/admin/
+# Secret admin page
+```
+
+### S09/L54 limit_connection module
+
+- useful for servers which are providing download related content
+  - **bandwidth based restrictions** can be set on the server
+- users with high download speed might use all the bandwidth of the server and other users will be unable to download
+
+#### Without bandwith control
+
+host `/etc/nginx/conf.d/example.conf`:
+```
+server {
+  listen 80;
+
+  location / {
+    root /var/www/websites/example;
+    index index.html index.htm;
+  }
+
+  location /downloads {
+    root /var/www/websites/example;
+  }
+}
+```
+host:
+```
+nginx -f
+mkdir /var/www/websites/example/downloads
+cp /tmp/100mbt.test /var/www/websites/example/downloads/
+service nginx reload
+```
+client:
+```
+wget servera.com/downloads/100mb.test
+# full speed download
+```
+
+#### With bandwith control
+
+host `/etc/nginx/conf.d/example.conf`:
+```
+  ...
+  location /downloads {
+    root /var/www/websites/example;
+    limit_rate 50k;
+  }
+  ...
+```
+host:
+```
+nginx -f
+service nginx reload
+```
+client:
+```
+wget servera.com/downloads/100mb.test
+# download speed is limited
+```
+
+- the download limit is not restricted to an IP
+- if another download process is started from the client, the download speeds of the two downloads add up
+
+#### With bandwith control limited to IP
+
+host `/etc/nginx/conf.d/example.conf`:
+```
+limit_conn_zone $binary_remote_addr zone=addr:10m;
+
+server {
+  ...
+  location /downloads {
+    root /var/www/websites/example;
+    limit_rate 50k;
+    limit_conn addr 1;
+  }
+  ...
+}
+```
+
+- a new zone needs to be created for workers (to share information)
+- `binary_remote_addr` - IP address of the client who will be downloading the file
+- a particular IP address can only have one connection
+
+
+host:
+```
+nginx -f
+service nginx reload
+```
+
+- the download limit is restricted to an IP
+- when trying to download from the server from the client while another download is in progress:
+
+```
+ERROR 503: Service Temporarily Unavailable
+```
+
+#### Limit the bandwidth after a downloaded amount
+
+host `/etc/nginx/conf.d/example.conf`:
+```
+  ...
+  location /downloads {
+    root /var/www/websites/example;
+    limit_rate_after 50m;
+    limit_rate 50k;
+    limit_conn addr 1;
+  }
+  ...
+}
+```
+
+- first 50MB will be downloaded at full speed
+- after 50MB the download speed will be limited in 50 kbps
+  - e.g.: bandwidth restriction for non premium users
+
+### S09/L55 Basic Authentication
+
+- authentication for any endpoint, e.g.: for the admin page
+- Authentication types
+  - Basic
+  - Digest
+  - NTLM (not much used)
+
+```
+# Client->Server:
+GET /admin HTTP/1.1
+
+# Server->Client:
+HTTP/1.1 401 Authorization Required
+WWW-Authenticate: Basic realm="Family"
+
+# Client->Server:
+GET /admin HTTP/1.1
+Authorization: Basic Ynjwel34ljh3fdl
+```
+
+- Encoding and not Encryption is used while authenticating
+- **Base64** endocing
+
+
+- in Wireshark start the packet capture
+- in browser open `example.com/admin`
+- follow the tcp stream: `GET /admin HTTP/1.1`
+
+```
+Client: GET /admin HTTP/1.1
+Server: HTTP/1.1 401 Unathorized
+        WWW-Authenticate: Basic realm="Basic Authentication"
+Client: GET /admin HTTP/1.1
+        Authorization: Basic YWRtaW46cGFzc3dvcmQ=
+Server: HTTP/1.1 200 OK
+```
+
+- The base64 decoded value of `YWRtaW46cGFzc3dvcmQ=` is `admin:password`.
+- The intercepted packets can be easily reverse engineered
+- That's the reason why **Basic Authentication is not preferred to use without SSL encryption**
+
+### S09/L56 Basic Authentication Practical
+
+```
+rpm -qa | grep httpd-tools
+yum -y install httpd-tools
+```
+host `/etc/nginx/conf.d/web.conf`:
+```
+server {
+  server_name example.com;
+
+  location / {
+    root /var/www/websites/example;
+    index index.html index.htm;
+  }
+
+  location /admin {
+    root /var/www/websites/example;
+    index index.html;
+  }
+}
+```
+browser:
+```
+http://example.com/admin/
+# not protected
+```
+host `/etc/nginx/conf.d/web.conf`:
+```
+  ...
+  location /admin {
+    root /var/www/websites/example;
+    index index.html;
+    auth_basic = " Basic Authentication ";
+    auth_basic_user_file "/etc/nginx/.htpasswd"
+  }
+  ...
+```
+host:
+```
+htpasswd -c /etc/nginx/.htpasswd    # `-c` is for creat a new file
+# enter password
+
+cat .htpasswd
+# admin:ZmsSnfjBzNT3A
+
+nginx -t
+service nginx reload
+```
+browser:
+```
+http://example.com/admin/
+# asking for username and password
+```
+
+**Warning**: use this method with HTTPS or SSL, otherwise it's a security vulnerability.
+
+### S09/L57 Understanding Hashing ( IHT )
+
+#### MD5 checksum
+
+- hashing is one way function, the original value can't be recovered
+
+original file:
+```
+echo "secret text" > document
+cat document
+
+md5sum document
+md5 document
+# a9e9c2735a250c38ea0a12a1a0f42624
+```
+modify file:
+```
+echo "secret text." > document
+cat document
+
+md5sum document
+md5 document
+# 97fd4c3548668695be13106b83b22e1
+```
+
+- uses of hashing:
+  - identify unintentionally changed programs, check system files if they have been changed by someone else
+  - no need to store the raw passwords for authentication just their hashed values
+  - verify integrity of a downloaded software
+
+```
+nano /etc/shadow
+```
+
+#### Encryption
+
+- encryption is a two way function
+
+### S09/L58 Understanding Digest Authentication
+
+#### Basic Authentication
+
+```
+Client: GET /admin HTTP/1.1
+Server: HTTP/1.1 401 Authorization Required
+        WWW-Authenticate: Basic realm="Family"
+Client: GET /admin HTTP/1.1
+        Authorization: Basic YWRtaW46cGFzc3dvcmQ=
+Server: HTTP/1.1 200 OK
+```
+
+- Response
+  - **Base64** encoding
+    - two way function
+  - original value can be computed if intercepted
+
+#### Digest Authentication
+
+```
+Client: GET /admin HTTP/1.1
+Server: HTTP/1.1 401 Authorization Required
+        WWW-Authenticate: Digest realm="Family"
+        nonce = 66c4534Fe34Fwee45bb43
+        qop = auth-int
+Client: GET /admin HTTP/1.1
+        Authorization: Digest
+        nonce = 66c4534Fe34Fwee45bb43
+        Response = "E44D04IAMSer323"
+Server: HTTP/1.1 200 OK
+```
+
+- Response
+  - **MD5** hashing
+    - one way function
+  - original value can't be computed if intercepted
+  - Computation
+    - H1(user + password + realm) = MD5
+    - H2(URI + ReguestMethod) = MD5
+    - H(MD5(H1), MD5(H2), nounce) = MD5 is the response to the server
+  - **nounce**
+    - prevents replay attacks
+    - changes in every time interval
+
+
+- **Digest Authentication**
+  - not support by NginX
+  - supported by Apache
+
+### S09/L59 Digest Authentication Practical
+
+- using Apache
+
+browser:
+```
+http://example.com/admin
+```
+host:
+```
+# make sure apache is installed
+rpm -qa | grep httpd
+
+# stop nginx
+service nginx stop
+service nginx status
+
+# start apache
+service nginx httpd
+```
+
+`/etc/httpd/conf/httpd.conf`:
+```
+# verify this line
+LoadModule auth_digest_module modules/mod_auth_digest.so
+
+...
+
+<Location /admin>
+ AuthType Digest
+ AuthName "knowledge-portal"
+ AuthDigestDomain /admin
+ AuthDigestProvider file
+ AuthUserFile /etc/httpd/digest_pwd
+ Require valid-user
+</Location>
+```
+
+```
+cd /etc/httpd/
+htdigest -c digest_pwd knowledge-portal admin
+
+service httpds restart
+```
+
+### S09/L60 GeoIP
+
+- **ngx_http_geoip_module** module variables:
+  - geoip_country, geoip_country_code
+  - geoip_city
+  - geoip_longitude
+  - geoip_org
+- https://dev.maxmind.com/geoip/legacy/codes/iso3166/
+
+host:
+```
+rpm -qa | grep GeoIP
+```
+
+`/etc/nginx/nginx.conf`:
+```
+http {
+  geoip_country /usr/share/GeoIP/GeoIP.dat;
+  map "$host:$geoip_country_code" $deny_by_country {
+    ~^example.com(?!IN) 1;        # restricted to India
+    default 0;
+  }
+}
+```
+`/etc/nginx/conf.d/web.conf`:
+```
+server {
+  server_name example.com;
+  listem 80;
+  if ($deny_by_country) { return 403; }
+  location / {
+    root /var/www/websites/example;
+  }
+}
+```
+host:
+```
+nginx -t
+service nginx reload
+```

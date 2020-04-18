@@ -2609,3 +2609,76 @@ http://example.com/non-existent.file
   - error message
   - client IP
   - hostname
+
+## S11 HTTP Compression
+
+### S11/L64 HTTP Compression
+
+- saves bandwidth
+- faster load time
+
+### S11/L65 Accept Content Encoding
+
+- HTTP Headers
+   - Accept Encoding
+   - Content Encoding
+
+```
+# size sshd_config.txt = 3.8K
+gzip -9 -c sshd_config.txt > sshd.gz
+# size sshd.gz = 1.8K
+```
+
+- Compression protocols supported by HTTP Protocol:
+  - **gzip**
+  - **deflate**
+  - **compress**
+
+```
+# client -> server
+GET /test.txt HTTP/1.1
+Host: example.com
+User-Agent: Mozilla 5.0
+Accept-Encoding: gzip, deflate
+
+# server -> client
+HTTP/1.1 200 OK
+Content-Type: text/plain
+Content-Encoding: gzip
+```
+
+- if the client does not send the `Accept-Encoding` header, the server can assume that the client understands all the type of encoding algorithms
+- the `Content-Type` will remain the content type of the original file
+
+### S11/L66 Getting started with Gzip for Nginx
+
+`/etc/nginx/nginx.conf`:
+```
+http {
+  ...
+  gzip on;
+  gzip_types text/plain text/css test/xml text/javascript;
+  gzip_disable "MSIE [1-6]\.";
+  gzip_comp_level 9;
+}
+```
+
+- necessary to specify the type
+- image or video files shall not be compressed
+- text based data shall be compressed
+- Microsoft Internet Explorer 1-6 does not support gzip
+- compression level:
+  - 1 - fastest, but poor compression
+  - 9 - slowest, but best compression
+
+host:
+```
+nginx -t
+service nginx reload
+
+curl http://example.com/sshd_config.txt > c1.txt
+# 3.8K
+
+curl -H "Accept-Encoding: gzip" http://example.com/sshd_config.txt > c2.txt
+# 1.8K
+```

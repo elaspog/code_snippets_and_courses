@@ -2682,3 +2682,60 @@ curl http://example.com/sshd_config.txt > c1.txt
 curl -H "Accept-Encoding: gzip" http://example.com/sshd_config.txt > c2.txt
 # 1.8K
 ```
+
+## S12 Yet To Decide
+
+### S12/L67 HTTP Referrer
+
+- famous sites/blogs are copied, but text or images may refer back to the original site, e.g.:
+  - original site: `a.com`
+    - serves the image and text
+  - copied site: `b.com`
+    - serves the copied text
+    - tries to retrieve the image from `a.com`
+- the system administrator:
+  - can know where the request/clients comes from
+  - can ban referring (not to allow stealing of resources)
+- **Image Hot-Linking & Referrer header**
+
+`/etc/nginx/conf.d/web.conf`:
+```
+server {
+  ...
+  location ~ \.(jpe?g|png|gif)$ {
+    valid_referrers none blocked servera.com *.servera.com;  # serverb.com is an invalid referrer
+    if ($invalid_referrer) {
+      return 403;
+    }
+  }
+}
+```
+
+Allow Hot-Linking for search engines:
+```
+    valid_referrers none blocked google.com bing.com servera.com *.servera.com;
+```
+
+- in `log_format` the `$http_referer` variable contains the referer information
+
+### S12/L68 Accept Language & Content Language
+
+- Based on: Content Negotiation Protocol, Quality parameter
+- `Accept-Language` - language prefered by the client
+  - specified by the browser settings
+```
+Accept-Language: da, en-gb;q=0.8, en;q=0.7
+```
+- the served page can be dependent to the value of the `Accept-Language`, e.g.:
+  - `Accept-Language: ja,en` can choose between `en-web1.html`, `ja-web1.html`
+- `Content-Language` - determines the language of the body for the intended audience
+  - not the same as language of the message body
+  - `Content-Language: en` - the body is for the audience who understand english
+
+```
+curl --header "Accept-Language: en" example.com/hu.html
+# This is the English Version of the Website.
+
+curl --header "Accept-Language: ja" example.com/hu.html
+# This is the Japanese Version of the Website.
+```

@@ -2739,3 +2739,197 @@ curl --header "Accept-Language: en" example.com/hu.html
 curl --header "Accept-Language: ja" example.com/hu.html
 # This is the Japanese Version of the Website.
 ```
+
+## S13 Web Application Firewall
+
+### S13/L69 Understanding the Modular NGINX Architecture
+
+- nginx has modular based architecture
+  - e.g.: GeoIP, WAF, Video Streaming
+- third party modules also exists for nginx
+
+```
+nginx -V
+```
+
+- modules can be added/removed via compilation of nginx
+- install from package contains a specific set of modules
+
+```
+# modules of Apache httpd: *.so
+ls /etc/httpd/modules
+
+# linux modules:
+lsmod
+```
+
+### S13/L70 Compiling Nginx from Source
+
+install packages to compile:
+```
+# install packages for compiling
+yum -y instal gcc gcc-c++ make zlib-devel pcre-devel openssl-devel
+```
+get source file:
+```
+wget http://nginx.org/download/nginx-1.9.0.tar.gz
+tar -xzvf nginx-1.9.0.tar.gz
+cd nginx-1.9.0
+```
+configure and compile:
+```
+nano configure
+./configure --help
+
+# compile with core modules only
+./configure --prefix=/etc/nginx --sbin-path=/usr/sbin/nginx --conf-path=/etc/nginx/nginx.conf --error-log-path=/var/log/nginx/error.log --user=nginx --group=nginx --pid-path=/var/run/nginx.pid
+
+# compile with core modules and an extra module
+./configure --prefix=/etc/nginx --sbin-path=/usr/sbin/nginx --conf-path=/etc/nginx/nginx.conf --error-log-path=/var/log/nginx/error.log --user=nginx --group=nginx --pid-path=/var/run/nginx.pid --with_http_gzip_static_module
+
+make
+make install
+```
+set environment:
+```
+# add user and group:
+useradd nginx
+groupadd nginx
+# ...
+
+service nginx status
+# nginx: unrecognized service
+# because no init.d script available
+
+wget -O /etc/init.d/nginx https://gist.github.com/sairam/5892520/raw/b8195a71e944d46271c8a49f2717f70bcd04bf1a/etc-init.d-nginx
+chmod +x /etc/init.d/nginx
+service nginx status
+service nginx restart
+
+curl 127.0.0.1
+```
+
+### S13/L71 Web Application Firewall
+
+- simple firewall
+  - checks for **Source IP**
+  - checks for **Destination PORT**
+  - can't loook into the HTTP packets
+  - can't detect the webapplication based hacking attempts
+- **Web Application Firewall**
+  - looks into HTTP packets, can determine if it's content is related to legitimate or hacking activity
+- Web Applications are the weakest link, even if very strong parameter security or firewall settings are set
+
+
+- OWASP TOP 10 - web applications attacks
+  - Injection
+  - Broken Authentication and Session Management
+  - Cross-Site Scripting (XSS)
+  - Insecure Direct Object References
+  - Security Misconfiguration
+  - Sensitive Data Exposure
+  - Missing Function Level Access Control
+  - Cross-Site Request Forgery (CSRF)
+  - Using Components with Known Vulnerabilities
+  - Unvalidated Redirects and Forwards
+
+```
+less /var/log/nginx/error.log* | grep --color learning
+# potential web application related attacks
+```
+
+### S13/L72 Installing & Configuring WAF on Nginx
+
+- **NAXSI** - open source WAF for NGINX
+
+Get NGINX and NAXSI:
+```
+wget http://nginx.org/download/nginx-1.9.5.tar.gz
+tar -xzvf nginx-1.9.5.tar.gz
+
+wget https://github.com/nbs-system/naxsi/archive/master.zip
+unzip master.zip
+```
+install packages to compile:
+```
+# install packages for compiling
+yum -y instal gcc make GeoIP GeoIP-devel pcre-devel openssl openssl-devel
+```
+configure and compile:
+```
+# compile with core modules and an extra module
+./configure --prefix=/etc/nginx --sbin-path=/usr/sbin/nginx --conf-path=/etc/nginx/nginx.conf --add-modules=../naxsi-master/naxsi_src --error-log-path=/var/log/nginx/error.log --http-log-path=/var/log/nginx/access.log --pid-path=/var/run/nginx.pid --lock-path=/var/run/nginx.lock --http-client-body-temp-path=/var/cache/nginx/client_temp --http-proxy-temp-path=/var/cache/nginx/proxy_temp --http-fastcgi-temp-path=/var/cache/nginx/fastcgi_temp --http-uwsgi-temp-path=/var/cache/nginx/uwsgi_temp --http-scgi-temp-path=/var/cache/nginx/scgi_temp --user=nginx --group=nginx --with-http_ssl_module --with-http_realip_module --with-http_addition_module --with-http_sub_module
+
+make
+make install
+```
+
+```
+ls -l /etc/init.d/nginx
+# download the init script from previous lecture if needed
+
+service nginx status
+service nginx restart
+```
+
+- rules for checking HTTP Request URI: `/usr/local/src/naxsi-master/naxsi-config/naxsi-core.rules`
+
+```
+cp /usr/local/src/naxsi-master/naxsi-config/naxsi-core.rules /etc/nginx
+```
+`/etc/nginx/nginx.conf`:
+```
+http {
+  ...
+  include /etc/nginx/naxsi-core.rules;
+  ...
+  server {
+    listen 80;
+    server_name example.com;
+
+    location / {
+      root /var/www/html;
+      index index.html;
+      include /etc/nginx/naxsi.rules;
+    }
+  }
+}
+```
+`/etc/nginx/naxsi.rules`:
+```
+LearningMode;
+SecRulesEnabled;
+#SecRulesDisabled;
+DeniedUrl "/RequestDenied.txt";
+
+## Check & Blocking Rules
+CheckRule "$SQL >= 8" BLOCK;
+CheckRule "$RFI >= 8" BLOCK;
+CheckRule "$TRAVERSAL >= 4" BLOCK;
+CheckRule "$EVADE >= 4" BLOCK;
+CheckRule "$XSS >= 4" BLOCK;
+```
+host:
+```
+mkdir /var/www/html
+echo "Hi" > /var/www/html/index.html
+echo "Not So Fast!" > /var/www/html/RequestDenied.txt
+
+nginx -t
+service nginx reload
+tail -f /var/log/nginx/*
+```
+browser:
+```
+example.com/?a=%3C  # %3C is a '<' character
+```
+host:
+```
+# NAXSI is logging the XSS related activity in the logs
+```
+
+- Disable the `LearningMode` in `/etc/nginx/naxsi.rules` in production
+
+### S13/L73 WAF - Custom Messages on Rule Matching Patterns
+
+the error from the previous lecture related to the missing custom message via `RequestDenied` file is corrected

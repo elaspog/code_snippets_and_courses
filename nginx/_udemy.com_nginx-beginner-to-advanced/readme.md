@@ -2498,3 +2498,114 @@ host:
 nginx -t
 service nginx reload
 ```
+
+## S10 Logging Subsystem
+
+### S10/L61 Access Logs
+
+- log files:
+  - acces logs
+  - error logs
+- logging module: **ngx_http_log_module**
+  - `$remote_addr` - IP address of the client which is trying to connect
+  - `$remote_user` - the isername in case of HTTP Basic authentication
+  - `$time_local` - timestamp
+  - `$request` - HTTP method, URL, HTTP version
+  - `$status` - HTTP response code
+  - `$body_bytes_sent` - size of the response
+  - `$http_referer`
+  - `$http_user_agent` - browser, operating systems
+  - `$http_x_forwarded_for` - useful when proxy is in between
+
+`/etc/nginx/nginx.conf`:
+```
+http {
+  ...
+  log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                    '$status $body_bytes_sent "$http_referer" '
+                    '"$http_user_agent" "$http_x_forwarded_for"';
+
+  access_log  /var/log/nginx/access.log  main;
+}
+```
+host:
+```
+tail -f /var/log/nginx/access.log
+```
+
+### S10/L62 Configuring Custom Access Logs
+
+`/etc/nginx/nginx.conf`:
+```
+  log_format master "$remote_addr" - "$status";
+
+  access_log  /var/log/nginx/access.log  master;
+```
+host:
+```
+nginx -t
+service nginx reload
+```
+browser:
+```
+https://example.com/myseed1.jpeg
+```
+host:
+```
+/var/log/nginx/access.log
+# different format
+```
+
+#### Different logs for each server
+
+- put `access_log` into server directive
+
+`/etc/nginx/conf.d/web.conf`:
+```
+server {
+  server_name example.com;
+  access_log  /var/log/nginx/example.log  main;
+  listem 80;
+  if ($deny_by_country) { return 403; }
+  location / {
+    root /var/www/websites/example;
+  }
+}
+```
+
+### S10/L63 Error Logs
+
+- Levels of logging:
+  - **emerg** - error in the config, nginx won't start
+  - **alert**
+  - **crit**
+  - **error**
+  - **warn**
+  - **notice**
+  - **info**
+  - **debug** - not enabled, need to compile nginx to enable
+- no documentation about what these log level mean
+- not the same flexibility for the configuration as the access logs have
+  - only the file path and level of logging can be changed
+
+`/etc/nginx/nginx.conf`:
+```
+  error_log  /var/log/nginx/access.log  master;
+```
+host:
+```
+tail -f /var/log/nginx/*.log
+```
+browser:
+```
+http://example.com/non-existent.file
+```
+
+- Format
+  - timestamp
+  - log level
+  - process id - which handled the request
+  - thread number - of the worker node
+  - error message
+  - client IP
+  - hostname

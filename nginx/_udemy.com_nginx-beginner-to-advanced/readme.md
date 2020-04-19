@@ -2933,3 +2933,162 @@ host:
 ### S13/L73 WAF - Custom Messages on Rule Matching Patterns
 
 the error from the previous lecture related to the missing custom message via `RequestDenied` file is corrected
+
+## S14 Cryptography Module
+
+### S14/L74 Understanding Asymmetric Key Encryption ( IHT )
+
+- **Symmetric Key**
+  - 1 key
+- **Assymetric Key**
+  - 2 keys: **Public** and **Private**
+  - 1 **Chain**: Public Key + Private Key
+  - Data encrypted from Public Key can only be decrypted with corresponding Private Key
+  - Data encrypted from Private Key can only be decrypted with corresponding Public Key
+  - **Key-Based Authentication** vs **Password-Based Authentication**
+
+### S14/L75 HTTPS Internal Working ( IHT )
+
+- **HTTP** - does not use encryption
+- **HTTPS** - uses encryption
+  1. the server sends it's public key to the client
+  2. the client encodes it's symmetric key with the public key of the server and sends it back to server
+  3. the server decrypts the symmetric key with it's private key
+  4. the server and client use the symmetric key for encrypted communication
+  - if the messages are intercepted they can't be decrypted, because private key is required
+
+### S14/L76 SSL with Nginx
+
+- `/etc/nginx/conf.d/ssl.conf`
+
+```
+cd /etc/nginx/conf.d
+mkdir certificates
+cd certificates
+```
+Generate certificate:
+```
+openssh req -x509 -newkey rsa:2048 -keyout key.pem -out final.pem -days 465 -nodes
+# fill the details
+
+cp * /etc/ssl/certs/
+```
+
+`/etc/nginx/conf.d/ssl.conf`:
+```
+server {
+  listen                     443;
+  server_name                zealvora.com;
+
+  ssl on;
+  ssl_certificate            /etc/ssl/certs/final.pem;
+  ssl_certificate_key        /etc/ssl/certs/key.pem;
+
+  ssl_session_timeout        5m;
+
+  ssl_protocols              SSLv2 SSLv3 TLSv1;
+  ssl_ciphers                ALL:!ADH:!EXPORT56:RC4+RSA:+HIGH:+MEDIUM:+LOW:+SSLv2:+EXP;
+  ssl_prefer_server_ciphers  on;
+
+  location / {
+    root                     /var/www/html;
+    index                    index.html index.htm;
+  }
+}
+```
+host:
+```
+nginx -t
+service nginx reload
+```
+browser:
+```
+https://zealvora.com
+# connection is untrusted because it's a self signed certificate
+```
+
+- Certificate Authiroties
+  - e.g.: GeoTrust
+
+```
+# send final.pem to GeoTrust
+# they will send back: zealvora_com.zip
+
+unzip zealvora_com.zip
+# zealvora_com.ca-bundle  - used for compatibility
+# zealvora_com.crt        - certificate
+
+# combine into a single certificate file
+cat zealvora_com.crt zealvora_com.ca-bundle > zeal.crt
+
+cp zeal.crt zeal.key /etc/ssl/certs
+```
+`/etc/nginx/conf.d/ssl.conf`:
+```
+server {
+  ...
+  ssl_certificate            /etc/ssl/certs/zeal.crt;
+  ssl_certificate_key        /etc/ssl/certs/zeal.key;
+  ...
+}
+```
+host:
+```
+nginx -t
+service nginx reload
+```
+browser:
+```
+https://zealvora.com
+# HTTPS with signed certificate, signed by a trusted Certificate Authority
+```
+
+### S14/L77 SSL Termination
+
+- **SSL Termination at Reverse Proxy**
+  - SSL Termination handled by the application servers (e.g.: Tomcat, PHP-FPM etc.) may slow them down, therefore the SSL Termination is usually done by the reverse proxy
+    - the SSL does not interfere between the communication between the reverse proxy and the application server
+  - the communication between the client and reverse proxy is HTTPS (SSL based connection)
+  - the communication between the reverse proxy and the application server is HTTP
+- **SSL Termination to Upstream**
+  - used if the application server resides in the environment which can't be fully trusted
+  - the communication between the client and reverse proxy is HTTPS (first SSL based connection)
+  - the communication between the reverse proxy and the application server is HTTPS (second SSL based connection)
+  - using a second SSL based connection slows down the overall performance
+
+`/etc/nginx/conf.d/zealvora_ssl.conf` in nginx reverse proxy:
+```
+server {
+  listen                      443 ssl;
+  server_name                 zealvora.com;
+
+  ssl_certificate             /etc/ssl/zealvora.crt;
+  ssl_certificate_key         /etc/ssl/zeal.key;
+
+  ssl_session_cache           shared:SSL:1m;
+  ssl_session_timeout         5m;
+
+  ssl_ciphers                 HIGH:!aNULL:!MD5;
+  ssl_prefer_server_ciphers   on;
+
+  location / {
+    proxy_pass                http://192.168.10.50:80;
+    proxy_set_header          X-Real-IP $remote_addr;
+    proxy_set_header          Host $host;
+  }
+}
+```
+
+- SSL Termination handled by SSL settings like `ssl_certificate`, `ssl_certificate_key` etc. in reverse proxy
+- `proxy_pass` with HTTP connection
+- Certificate details:
+  - Hierarchy: AddTrust, COMODO RSA Certification Authority, COMODO RSA Domain Validation Secure Server CA, zealvora.com
+    - CA bundle was added, because a web browser don't trust COMODO Certificate, but trusts the root AddTrust certificate
+
+
+- SideNode:
+  - his Wordpress website was not configured to work on full SSL based connection
+    - many requests are using HTTP connection
+    - when loading HTTPS website the browser won't load the content accessible via HTTP
+    - Wordpress needs to be configured to work fully on HTTPS
+  - he needs to disable protection in the browser to access the WordPress site with full content

@@ -1,0 +1,21 @@
+version: '3.3'
+
+services:
+  nginx-proxy:
+    container_name: nginx-proxy
+    build: .
+    image: nginx-proxy:0.0.2
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "./etc/letsencrypt/:/etc/letsencrypt/"
+      - "./etc/ssl/:/etc/ssl/"
+    command: bash -c "startup.sh"
+    restart: always
+    networks:
+      - nginxproxy_default
+
+networks:
+  nginxproxy_default:
+    external: true

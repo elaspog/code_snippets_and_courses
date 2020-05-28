@@ -99,15 +99,68 @@ https://www.udemy.com/course/serverless-framework
 
 ### S02/E07 Installing Node.js and NPM
 
+- NodeJS (LTS)
+- npm
+
 ### S02/E08 Installing the AWS CLI
+
+- AWS CLI
+
+```
+aws
+# some output
+```
 
 ### S02/E09 Installing the Serverless Framework CLI
 
+https://www.serverless.com/
+
+```
+npm install -g serverless
+
+sls --version
+# some output
+```
+
 ### S02/E10 Configuring the AWS CLI + IAM
+
+- AWS
+  - IAM / Users / Add user
+    - Programmatic access
+    - AWS Management Console access
+    - Attach existing policy: AdministratorAccess
+
+```
+aws configure
+# Access Key ID
+# Secret Access Key
+# default region name: eu-west-1
+# default output format: yaml
+```
 
 ### S02/E11 (Optional) AWS Budgets and Alerts
 
+- AWS Console / Account Name / My Billing Dashboard / Billing Preferences
+  - enable: Recieve Free Tier Usage Alerts
+- AWS Console / Account Name / My Billing Dashboard / Budgets
+  - Create Budget / Cost Budget
+    - name: My Monthly Budget
+    - Recurring Budget
+    - Budget Amount: 10 USD
+    - Alert 1:
+      - Actual Cost
+      - Alert threshold: 50 % of budgeted amount
+      - email address
+    - Alert 2:
+      - Forecasted costs
+      - Alert threshold: 80 % of budgeted amount
+      - email address
+
 ### S02/E12 My Postman Setup
+
+- Postman
+  - add collection: Auction Service
+  - add environment: dev
 
 ## S03 Auction Service: Part 1
 

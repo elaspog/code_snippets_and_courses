@@ -7,13 +7,91 @@ https://www.udemy.com/course/serverless-framework
 
 ### S01/E01 Project Overview
 
+- Auction Service
+  - **AWS Labda functions**
+    - like traditional REST APIs
+    - createAuction, getAuctions, getAuction, placeBid, uploadAcutionPicture, processAuction
+  - **AWS API Gateway**
+    - provides a public gateway that triggers lambda functions using endpoints
+  - **AWS DynamoDB**
+  - **AWS Event Bridge**
+    - triggers: processAuction
+  - **AWS S3**
+- **Auth Service**
+  - **AWS Labda function**
+    - authorizer
+  - JWT - JSON Web Token
+- Notification Service
+  - **AWS SQS MailQueue**
+  - **AWS SES**
+  - **AWS Labda function**
+    - sendMail
+
 ### S01/E02 Serverless Architecture in a Nutshell
 
+- Cloud computing execution model
+  - Cloud provider runs the server
+  - Dynamically manages the allocation of machine resources
+- Pricing is based on the resources consumed by the application
+- Scaling is handled automatically by the cloud provider
+- AWS Lambda:
+  - supports: NodeJS, Python, Ruby, Java, Golang, C#
+- Serverless applications can be combined with non-Serverless applications
+- Serverless might not be the solution for all problems
+
 ### S01/E03 Introduction to Serverless Framework
+
+- Free and open-source framework
+- Makes it easy to develop, deploy, manage and debug Serverless applications
+- Supports multiple cloud providers
+  - AWS, Azure, GCP, Knative, Tecent Cloud, Alibaba Cloud, Cloudflare, fn, Kubeless, OpenWhisk, spotinst
+- **FaaS - Function as a Service**
+  - building blocks
+  - AWS Lambda, Google Cloud Functions, Azure Functions
+- Fucntions need to by triggered by some event
+- **serverless.yml**
+  - is the hearth of the Serverless Framework application
+  - defines service name, provider, functions, resources etc.
+- Framework has a rich set of plugins:
+  - serverless-webpack, serverless-domain-manager, serverless-offline, serverless-plugin-typescript, etc.
+- **IaC - Infrastructure as Code**
+  - application infrastructure side-by-side with code that uses it
+    - no redundant resources
+    - no manual configuration
+    - version control
+  - increased site reliability
+    - change tracking, migrations, updates are recorded and logged
+    - deployments have states what changes are applied on  
+  - no extreme complexity of defining infrastructure
+- all Service Framework applications are deployed as **Cloud Formation** stacks on AWS
 
 ### S01/E04 Real-world Serverless Use Cases
 
 ### S01/E05 Introduction to Microservices Architecture
+
+- Microservices Architecture is one solution to the challenge of distributing a system
+- Benefits
+  - Reduce dependency between development teams
+  - Can scale independently of other services
+  - Can be deployed and updated independently of other services
+  - Allows for flexibility in technology choices
+  - Help reduce point of failure
+  - Tends to reflect the structure of the business
+- Communication Between Services
+  - **HTTP Requests**
+  - **Messaging (Pub/Sub)**
+    - one party publishes a message, other party can subscribe to that message
+    - messages that are not picked up by subscribers simply evaporate
+    - e.g.: **AWS SNS - Simple Notification Service**
+  - **Message Queues**
+    - messages are sent to a queue and had to be picked up on the other end to be processed
+    - can help with dealing a very high volume of traffic
+    - e.g.: **AWS SQS - Simple Queue Service**, **RabbitMQ**
+  - **Event Streams**
+    - streams that facilitate information exchange based on events
+    - event producers and event consumers
+    - can act as a storage layer, messages do not evaporate when not picked up
+    - e.g.: **AWS Kinesis**, **Apache Kafka**
 
 ### S01/E06 AWS Free Tier
 

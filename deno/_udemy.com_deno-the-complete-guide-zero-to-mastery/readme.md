@@ -7,7 +7,26 @@ https://www.udemy.com/course/deno-the-complete-guide-zero-to-mastery
 
 ### S1/L1 Course Outline
 
+- Deno Foundations
+- Deno vs Node
+- Mdules + Tooling
+- File I/O
+- Backends and APIs
+- NASA Project
+  - Performance
+  - Testing
+  - Security
+  - Debugging
+  - Docker
+  - Production + Deployment
+- How JavaScript Works
+- TypeScript
+
 ### S1/L2 Join Our Online Classroom!
+
+https://discord.gg/kDsZfGc
+
+https://discord.com/invite/kDsZfGc
 
 ### S1/L3 Exercise: Meet The Community
 
@@ -15,21 +34,103 @@ https://www.udemy.com/course/deno-the-complete-guide-zero-to-mastery
 
 ### S2/L4 Why Deno?
 
+https://deno.land/std
+
+- Runtime for JavaScript and TypeScript that uses V8 and is built in Rust
+- Secure by default
+- Ships a single executable file
+- Has built-in utilities, like dependency inspector (deno info), code formatter (deno fmt)
+- Has set of reviewed (audited) standard modules that are guaranteed to work with Deno
+
 ### S2/L5 Deno Runtime And V8 Engine
+
+- **V8 engine**:
+  - written in C++
+  - turns JavaScript code into machine code, instructions understood by browser
+- **Deno** and **Node** are **runtimes** built on V8 engine
+  - they allow to run JavaScript (or TypeScript) to run outside the browser
 
 ### S2/L6 Deno Installation
 
+test installation:
+```sh
+which deno
+# outputs path for deno
+
+#open /usr/local/bin/deno
+```
+
 ### S2/L7 Quick Note: Installing Deno
 
+https://repl.it/languages/deno#index.ts
+
 ### S2/L8 MAC/LINUX Installation Tips
+
+- Add Deno to PATH (via bash profile)
+  - Necessary if Deno was installed with script
+
+In the example fish shell is used: `~/.config/fish/config.fish`
+```sh
+export DENO_INSTALL="/Users/<USERNAME>/.deno"
+export PATH="$DENO_INSTALL/bin:$PATH"
+```
 
 ### S2/L9 WINDOWS Installation Tips
 
 ### S2/L10 Setting Up Our Developer Environment
 
+deno1.js:
+```js
+function a() {
+  console.log(42)
+}
+
+a()
+```
+
+```sh
+deno run deno1.js
+```
+
+deno2.ts:
+```
+const a: string = 'Andrei'
+console.log(a)
+```
+
+```sh
+deno run deno2.ts
+# deno compiles the file, TypeScript is converted to JavaScript
+```
+
+- For Node to use TypeScript modules need to be installed
+- Deno has built-in TypeScript compiler
+  - compiles TypeScript into JavaScript without additional modules installed
+
 ### S2/L11 Quick Note: Official VS Code Plugin
 
+https://marketplace.visualstudio.com/items?itemName=denoland.vscode-deno
+
+the recommended is **denoland** instead of **justjavac**
+
 ### S2/L12 Our First Deno App
+
+**deno.js**
+
+deno.js:
+```
+const food = Deno.args[0]
+
+if (food === 'love'){
+    console.log('🦕...Deno is born!')
+} else {
+    console.log('🥚...this egg needs some love')
+}
+```
+
+```sh
+deno run deno.js "love"
+```
 
 ### S2/L13 Exercise: Our First Deno App
 
@@ -37,13 +138,126 @@ https://www.udemy.com/course/deno-the-complete-guide-zero-to-mastery
 
 ### S2/L15 Deno Internals And Architecture
 
+- Deno Process
+  - program in execution
+  - sandbox
+- **rusty_v8**
+  - allows the **V8 engine** to communicate with the rust code that deno has when other than JavaScript needs to be executed
+    - e.g. file access
+  - the 'frontend' of the deno runtime
+  - written in C++ because V8 is written in C++
+- rust code
+  - the 'backend' of the deno runtime
+  - can access files
+- **deno core**
+  - send - send information to rust
+  - recv - receive message from rust
+- asynchronous I/O
+  - e.g. `setTimeout`
+  - multitple operations at the same time
+  - event loop, thread pool, workers
+  - **tokio** library (rust library)
+- rust
+  - multi-paradigm language
+  - very good safety especially with memory
+  - extremely performant
+- node
+  - is written c++
+  - libuv library for asynchronous I/O
+- browser
+  - has web workerss
+
 ### S2/L16 Recommended Path: JavaScript Runtimes
 
 ### S2/L17 Deno Metrics
 
+- `Deno.metrics()`
+  - gives back low level information about the communication between the Deno JavaScript and Deno Rust sides
+- `setTimeout()`
+  - not part of the JavaScript language, therefore not part of the V8 engine
+  - Deno implements that
+
+```sh
+deno run deno.js "love"
+```
+
+```js
+// previous demo.js
+console.table(Deno.metrics())
+// opsDispatched: 1
+// opsDispatchedSync: 1
+// opsDispatchedAsync: 0
+// opsCompleted: 1
+// opsCompletedSync: 1
+// opsCompletedAsync: 0
+```
+
+```js
+// previous demo.js
+setTimeout(()=>{
+  console.log("check")
+}, 1000)
+console.table(Deno.metrics())
+// opsDispatched: 2
+// opsDispatchedSync: 1
+// opsDispatchedAsync: 1
+// opsCompleted: 1
+// opsCompletedSync: 1
+// opsCompletedAsync: 0
+```
+
+```js
+// previous demo.js
+setTimeout(()=>{
+  console.log("check")
+  console.table(Deno.metrics())
+}, 1000)
+// opsDispatched: 3
+// opsDispatchedSync: 2
+// opsDispatchedAsync: 1
+// opsCompleted: 3
+// opsCompletedSync: 2
+// opsCompletedAsync: 1
+```
+
 ### S2/L18 Exercise: Deno Architecture
 
+- Deno Rust is called when the `Deno` or `window` namespaces are used
+
+deno.js:
+```js
+console.log(window)
+```
+
+```sh
+deno run deno.js
+# window object
+```
+
+node.js:
+```js
+console.log(global)
+```
+
+```sh
+node node.js
+# global object
+```
+
+- `window` object
+  - this is not JavaScript
+  - contains extra tools and APIs provided by deno  what can be used
+- `global` object
+  - node version of the deno's `window` object
+- some property and function names are common between `global` and `window` objects, but some not
+  - node is missing the compatibility with the browser
+  - deno tries to have browser-compatible API
+
 ### S2/L19 Web Developer Monthly
+
+https://zerotomastery.io/blog/?tag=WDM
+
+https://zerotomastery.io/blog/
 
 ## S3 Deno vs Node
 

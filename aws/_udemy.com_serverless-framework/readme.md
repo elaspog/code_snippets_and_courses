@@ -65,6 +65,20 @@ https://www.udemy.com/course/serverless-framework
   - no extreme complexity of defining infrastructure
 - all Service Framework applications are deployed as **Cloud Formation** stacks on AWS
 
+Example `serverless.yml`:
+```yaml
+provider:
+  name: aws
+  runtime: nodejs12.x
+  memorySize: 256
+
+functions:
+  hello:
+    handler: hello
+    events:
+      - http: GET hello
+```
+
 ### S01/E04 Real-world Serverless Use Cases
 
 ### S01/E05 Introduction to Microservices Architecture
@@ -95,27 +109,38 @@ https://www.udemy.com/course/serverless-framework
 
 ### S01/E06 AWS Free Tier
 
+https://aws.amazon.com/free/
+
 ## S02 Requirements and Prerequisites
 
 ### S02/E07 Installing Node.js and NPM
 
+https://nodejs.org/en/download/
+
 - NodeJS (LTS)
 - npm
 
+```sh
+node --version
+```
+
 ### S02/E08 Installing the AWS CLI
+
+https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html
 
 - AWS CLI
 
-```
+```sh
 aws
 # some output
 ```
 
 ### S02/E09 Installing the Serverless Framework CLI
 
-https://www.serverless.com/
+https://www.serverless.com/  
+https://www.serverless.com/framework/docs/getting-started/  
 
-```
+```sh
 npm install -g serverless
 
 sls --version
@@ -130,7 +155,7 @@ sls --version
     - AWS Management Console access
     - Attach existing policy: AdministratorAccess
 
-```
+```sh
 aws configure
 # Access Key ID
 # Secret Access Key
@@ -158,6 +183,8 @@ aws configure
 
 ### S02/E12 My Postman Setup
 
+https://www.postman.com/downloads/
+
 - Postman
   - add collection: Auction Service
   - add environment: dev
@@ -168,33 +195,653 @@ aws configure
 
 ### S03/E14 Creating a Serverless Framework Project
 
+**serverless.yml**  
+
+https://github.com/codingly-io/sls-base
+
+```sh
+mkdir sls-course
+cd sls-course
+```
+
+Templates in Serverless Framework:
+```sh
+# custom template made by the instructor:
+# sls create --name YOUR_PROJECT_NAME --template-url https://github.com/codingly-io/sls-base
+
+sls create --name auction-service --template-url https://github.com/codingly-io/sls-base
+cd auction-service
+npm install
+```
+
 ### S03/E15 The Anatomy of a Serverless Project
+
+**serverless.yml**  
+**src/handlers/hello.js**  
+**package.json**  
+
+- hearth of the serverless application: `serverless.yml`
+- YAML is superset of JSON
+  - JSON can be used in YAML
+  - indentation is very important
+
+`serverless.yml`:
+```yaml
+service:
+  name: auction-service
+
+plugins:
+  - serverless-bundle
+  - serverless-pseudo-parameters
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  memorySize: 256
+  stage: ${opt:stage, 'dev'}
+
+functions:
+  hello:
+    handler: src/handlers/hello.handler
+    events:
+      - http:
+          method: GET
+          path: /hello
+
+custom:
+  bundle:
+    linting: false
+```
+
+- `service` - metadata definition about the service
+- `plugins`
+  - `serverless-bundle` - bundle application using webpack
+  - `serverless-pseudo-parameters` - interpolate AWS parameters: region, account id, etc.
+- `provider` - cloud provider information
+  - `name` - cloud provider name
+  - `runtime` - runtime environment
+  - `memorySize` - memory limit
+  - `opt:stage` YAML variable with `dev` default value: `${opt:stage, 'dev'}` (interpolation syntax)
+- `functions`
+  - `handler: src/handlers/hello.handler` - the `handler` from `src/handlers/hello.js` is going to be executed when the function is called
+  - `events` - this triggers the function call
+    - `http` - protocol
+      - `method` - HTTP method
+      - `path` - endpoint
+- `custom` - plugin configuration and custom variables
+  - `bundle: linting: false` - disable linting in `serverless-bundle` plugin
+
+`src/handlers/hello.js`:
+```javascript
+async function hello(event, context){
+  return {
+    statusCode: 200,
+    body: JSON.stringify({ message: 'Hello from https://codingly.io' }),
+  };
+}
+
+export const handler = hello;
+```
+
+`package.json`
+- defines the npm package: project dependencies, dev dependencies
 
 ### S03/E16 TIP: Serverless IDE VSCode Plugin
 
+plugin for autocompletion in `serverless.yml`:
+
+https://marketplace.visualstudio.com/items?itemName=ThreadHeap.serverless-ide-vscode
+
 ### S03/E17 Deploying Our Application for the First Time
+
+**serverless.yml**  
+
+`serverless.yml`:
+```yaml
+# ...
+provider:
+  # ...
+  region: eu-west-1
+# ...
+```
+
+```sh
+#sls deploy
+# same as: sls deploy --stage dev
+# due to: ${opt:stage, 'dev'} in serverless.yml
+
+sls deploy -v
+# he endpoint for the service is listed
+```
+
+Browser:
+```sh
+https://<random_generated>/execute-api.eu-west-1.amazonaws-com/dev/hello
+# response: { "message": "Hello from https://codingly.io" }
+```
+
+CloudFormation / Region: eu-west-1 / Stacks
+  - stack name: `auction-service-dev`
+    - events, resources, log group, API gateway etc.
 
 ### S03/E18 (Tip) Stack Removal
 
+```sh
+sls remove
+# or
+sls remove -v
+```
+
 ### S03/E19 Creating an Auction (Part 1)
 
+**serverless.yml**  
+**src/handlers/createAuction.js**  
+
+`createAuction.js`:
+```js
+async function createAuction(event, context){
+  return {
+    statusCode: 200,
+    body: JSON.stringify({ event, context }),
+  };
+}
+
+export const handler = createAuction;
+```
+
+`serverless.yml`:
+```yaml
+service:
+  name: auction-service
+
+plugins:
+  - serverless-bundle
+  - serverless-pseudo-parameters
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  memorySize: 256
+  stage: ${opt:stage, 'dev'}
+  region: eu-west-1
+
+functions:
+  createAuction:
+    handler: src/handlers/createAuction.handler
+    events:
+      - http:
+          method: POST
+          path: /auction
+
+custom:
+  bundle:
+    linting: false
+```
+
+```sh
+sls deploy -v
+```
+
+- in Postman
+  - add a new Environment Variable `dev`
+  - variable name: `AUCTIONS_HOST`
+  - current value is the deployment's base url
+  - set Body / raw / json
+
+Postman:
+```sh
+# Body / raw / json:
+{
+    "title": "Super nice car"
+}
+
+POST {{AUCTIONS_HOST}}/auction
+# 200 OK
+# JSON in request
+```
+
 ### S03/E20 Creating an Auction (Part 2)
+
+**src/handlers/createAuction.js**  
+
+`createAuction.js`:
+```js
+async function createAuction(event, context){
+  const { title } = JSON.parse(event.body);
+  const now = new Date();
+
+  const auction = {
+    title,
+    status: "OPEN",
+    createdAt: now.toISOString(),
+  };
+
+  return {
+    statusCode: 201,
+    body: JSON.stringify(auction),
+  };
+}
+
+export const handler = createAuction;
+```
+
+- lambda runs for only 15 minutes
+
+```sh
+sls deploy -f createAuction -v
+```
 
 ### S03/E21 NOTE: Introduction to DynamoDB
 
 ### S03/E22 Introduction to DynamoDB
 
+- DynamoDB
+  - Fully managed - don't have to ensure that the DB is running
+  - NoSQL database
+  - Serverless
+  - High Availability
+  - Performance
+  - Durability
+  - Spreads the data and traffic across efficient number of servers to handle throughput and storage requirements to ensure consistent and fast performance
+  - Data stored on SSDs
+  - Replicated across multiple Availability Zones
+  - DynamoDB components
+    - **tables**
+    - **items**
+    - **attributes**
+  - Schemaless
+    - flexible in it's properties what can be added to the records
+  - Records in JSON
+  - **Scan** - through entire table
+    - for searching values not as partition or sort keys
+  - **Query** - using **primary key** or **secondary indexes**
+    - when querying
+      - the **partition key** is always defined
+      - the **sort key** is optionally defined
+  - **Primary Key**
+    - necessary to specify when creating the table
+    - helps uniquely identify the items of the table
+    - types:
+      - **Partition Key** - composed of one unique attribute
+      - **Composite Primary Key** - composed of two attributes (**partition and sort key**)
+        - can't run queries on the sort key alone, the partition key must be also specified
+  - **Secondary Indexes**
+    - adds querying flexibility to the table
+    - other keys can be specified apart from those what were already specified for the table when it was created
+    - types:
+      - **Global Secondary Index**
+        - index with a Partition Key and Sort Key that can be different from those on the table
+        - can create up to 20 for a table
+      - **Local Secondary Index**
+        - index that has the same partition key as the table, but a different sort key
+  - Read Consistency
+    - **Eventually Consistent Reads**
+      - might not reflect the results of the most up-to-date data after writing, this is due to the way how DynamoBD spreads the data across multiple Availability Zones for better durability and high availability
+    - **Strongly Consistent Reads**
+      - always reflect the most up-to-date data
+      - might not be available due to network delay or outage
+      - potential higher latency
+      - not supported on Global Secondary Indexes
+      - use more throughput capacity (= more money spent)
+  - Read/Write Capacity Modes
+    - **On-Demand**
+      - Flexible, Elastically adapting to the workload
+      - Capable of serving thousands of requests per second
+      - No need to plan capacity ahead-of-time
+      - Pay-per-request basis - only pay for what is used
+      - Delivery time usually single-digit millisecond latency (SLA)
+      - useful when introducing new table, where the workload/traffic is hard to predict
+    - **Provision Mode**
+      - Read and write capacity per second need to be specified
+      - Can specify auto-scaling rules to automatically adjust the capacity
+      - Allows to reserve capacity in advance (reducing costs significantly)
+      - Capacity specified:
+        - **Read Capacity Units (RCU)**
+          - one strongly or two eventually consistent reads per second, for up to 4 KB in size
+        - **Write Capacity Units (WCU)**
+          - one write per second for up to 1 KB in size
+  - **DynamoDB Streams**
+    - allows to react on new item creation, update or deletion in table
+
 ### S03/E23 Creating our DynamoDB Table (IaaC)
+
+*resources.txt*  
+
+- **Cloud Formation Syntax**
+  - language created by AWS
+  - is used in `serverless.yml`
+
+`serverless.yml` (*resources.txt*):
+```yaml
+resources:
+  Resources:
+    AuctionsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: AuctionsTable
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+```
+
+- `Resources` - Yaml object
+  - `Type` - AWS resource
+  - `Properties` -
+    - `TableName` - DynamoDB table name
+    - `BillingMode` - can be preprovisioned to have certain amount of write capacity units or can be payed per request
+    - `AttributeDefinitions` - columns for schemaless table
+      - `AttributeName` - name
+      - `AttributeType` - type
+        - `S` for string
+    - `KeySchema`
+      - `AttributeName` - referred attribute
+      - `KeyType` - Partition key
+
+```sh
+sls deploy -v
+```
 
 ### S03/E24 Using the DynamoDB DocumentClient to Insert an Auction
 
+https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/DynamoDB/DocumentClient.html
+
+```sh
+npm install uuid
+```
+
+`createAuction.js`:
+```js
+import { v4 as uuid } from 'uuid';
+import AWS from 'aws-sdk';
+
+const dynamodb = new AWS.DynamoDB.DocumentClient();
+
+async function createAuction(event, context){
+  const { title } = JSON.parse(event.body);
+  const now = new Date();
+
+  const auction = {
+    id: uuid(),
+    title,
+    status: "OPEN",
+    createdAt: now.toISOString(),
+  };
+
+  await dynamodb.put({
+    TableName: "AuctionsTable",
+    Item: auction,
+  }).promise();
+
+  return {
+    statusCode: 201,
+    body: JSON.stringify(auction),
+  };
+}
+
+export const handler = createAuction;
+```
+
+```sh
+sls deploy -f createAuction -v
+```
+
+Postman:
+```sh
+# Body / raw / json:
+{
+    "title": "Super nice car"
+}
+
+POST {{AUCTIONS_HOST}}/auction
+# Internal server error
+```
+Reason: `AccessDeniedException` on the resource
+
 ### S03/E25 Defining IAM Role Statements (Permissions)
+
+**serverless.yml**  
+
+The problem is caused by the IAM Role
+
+- CloudFormation / stack / resources
+  - IamRoleLambdaExecution
+    - Policies
+
+Lambda can only write CloudWatch
+
+`serverless.yml`:
+```yml
+provider:
+  # ...
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:PutItem
+      Resource:
+        - arn:aws:dynamodb:#{AWS::Region}:#{AWS::AccountId}:table/AuctionsTable
+```
+
+- `iamRoleStatements` - this will be appended to the role created by the framework
+  - `Action`
+    - `- dynamodb:*` - all actions, it's not recommended to use
+  - `Resource`
+    - service name: `dynamodb`
+    - `#{AWS::Region}` - region, like `eu-west-1`
+    - `#{AWS::AccountId}` - account ID
+- `serverless-pseudo-parameters` provides the possibility of using: `#{AWS::Region}` and `#{AWS::AccountId}`
+
+- CloudFormation / stack / resources
+  - IamRoleLambdaExecution
+    - Policies
+
+Lambda can write CloudWatch and DynamoDB now
+
+```sh
+sls deploy -v
+```
 
 ### S03/E26 Optimising serverless.yml (Part 1): Roles and IAM Statements
 
+**resources/AuctionsTable.yml**  
+**iam/AuctionsTableIAM.yml**  
+**serverless.yml**  
+
+https://github.com/codingly-io/course-auction-service/tree/df75d1e5373b756febfd8c566ddf79391d6724f6
+
+`resources/AuctionsTable.yml`:
+```yaml
+AuctionsTable:
+  Type: AWS::DynamoDB::Table
+  Properties:
+    TableName: AuctionsTable
+    BillingMode: PAY_PER_REQUEST
+    AttributeDefinitions:
+      - AttributeName: id
+        AttributeType: S
+    KeySchema:
+      - AttributeName: id
+        KeyType: HASH
+```
+
+`iam/AuctionsTableIAM.yml`:
+```yaml
+AuctionsTableIAM:
+  Effect: Allow
+  Action:
+    - dynamodb:PutItem
+  Resource:
+    - arn:aws:dynamodb:#{AWS::Region}:#{AWS::AccountId}:table/AuctionsTable
+```
+
+Import above files with: `${file(RelativeDirectoryPath/FileName.yml):Node}`
+
+`serverless.yml`:
+```yaml
+service:
+  name: auction-service
+
+plugins:
+  - serverless-bundle
+  - serverless-pseudo-parameters
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  memorySize: 256
+  stage: ${opt:stage, 'dev'}
+  region: eu-west-1
+  iamRoleStatements:
+    - ${file(iam/AuctionsTableIAM.yml):AuctionsTableIAM}
+
+resources:
+  Resources:
+    AuctionsTable: ${file(resources/AuctionsTable.yml):AuctionsTable}
+
+functions:
+  createAuction:
+    handler: src/handlers/createAuction.handler
+    events:
+      - http:
+          method: POST
+          path: /auction
+
+custom:
+  bundle:
+    linting: false
+```
+
+```sh
+sls deploy -v
+```
+
+Postman:
+```sh
+# Body / raw / json:
+{
+    "title": "Super nice car"
+}
+
+POST {{AUCTIONS_HOST}}/auction
+# works
+```
+
 ### S03/E27 Optimising serverless.yml (Part 2): Intrinsic Functions and Custom Variables
 
+**resources/AuctionsTable.yml**  
+**iam/AuctionsTableIAM.yml**  
+**serverless.yml**  
+**createAuction.js**  
+
+- Avoid hardcoding table names
+  - Hard to manage across environments
+
+Tablename should contain current state: `${self:provider.stage}`
+
+`resources/AuctionsTable.yml`:
+```yaml
+AuctionsTable:
+  Type: AWS::DynamoDB::Table
+  Properties:
+    TableName: AuctionsTable-${self:provider.stage}
+    BillingMode: PAY_PER_REQUEST
+    AttributeDefinitions:
+      - AttributeName: id
+        AttributeType: S
+    KeySchema:
+      - AttributeName: id
+        KeyType: HASH
+```
+
+Custom object is the source of truth:
+
+`serverless.yml`:
+```yaml
+# ...
+custom:
+  AuctionsTable:
+    name: !Ref AuctionsTable
+    arn: !GetAtt AuctionsTable.Arn
+  # ...
+```
+
+- Intrinsic functions: `Ref`, `GetAtt`
+
+`iam/AuctionsTableIAM.yml`:
+```yaml
+AuctionsTableIAM:
+  Effect: Allow
+  Action:
+    - dynamodb:PutItem
+  Resource:
+    - ${self:custom.AuctionsTable.arn}
+```
+
+- Environment Variables can be defined:
+  - on function level
+  - on provider/application level
+
+Application level environment variable:
+
+`serverless.yml`:
+```yaml
+# ...
+provider:
+  name: aws
+  runtime: nodejs12.x
+  memorySize: 256
+  stage: ${opt:stage, 'dev'}
+  region: eu-west-1
+  environment:
+    AUCTIONS_TABLE_NAME: ${self:custom.AuctionsTable.name}
+  iamRoleStatements:
+    - ${file(iam/AuctionsTableIAM.yml):AuctionsTableIAM}
+# ...
+```
+
+Read table name from environment variable:
+
+`createAuction.js`:
+```js
+// ...
+async function createAuction(event, context){
+  // ...
+  await dynamodb.put({
+    TableName: process.env.AUCTIONS_TABLE_NAME,
+    Item: auction,
+  }).promise();
+  // ...
+}
+```
+
+```sh
+sls deploy -v
+```
+
+Postman:
+```sh
+# Body / raw / json:
+{
+    "title": "Super nice car"
+}
+
+POST {{AUCTIONS_HOST}}/auction
+# works
+```
+
 ### S03/E28 Serverless Offline - Is It Worth It?
+
+https://github.com/dherault/serverless-offline  
+https://www.npmjs.com/package/serverless-offline  
+
+- Plugin: Serverless Offline
+  - too much services should be mocked on the machine
+    - mocked services are community maintained are not official
+    - no guarantee they reflect what actually happens on the cloud
+  - does not worth it to use
 
 ## S04 Auctions Service: Part 2 (CRUD Operations)
 

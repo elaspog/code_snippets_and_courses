@@ -93,7 +93,7 @@ deno run deno1.js
 ```
 
 deno2.ts:
-```
+```js
 const a: string = 'Andrei'
 console.log(a)
 ```
@@ -118,7 +118,7 @@ the recommended is **denoland** instead of **justjavac**
 **deno.js**
 
 deno.js:
-```
+```js
 const food = Deno.args[0]
 
 if (food === 'love'){
@@ -446,33 +446,312 @@ deno run -A Drakefile.ts hello
 
 ### S45/L28 How Modules Work In Deno
 
+**deno.js**  
+**deno2.js**  
+**deno3.js**  
+
+modules = JS and TS files
+ES6 import syntax
+
+
+`deno.js`:
+```js
+const food = Deno.args[0]
+fetch
+if (food === 'love'){
+    console.log('🦕...Deno is born!')
+} else {
+    console.log('🥚...this egg needs some love')
+}
+```
+
+```sh
+deno --help
+deno info 'deno.js'
+# type
+# dependencies
+# file location
+```
+
+`deno2.js`:
+```js
+export function denode(input){
+  if (input.toLowerCase() === 'node'){
+    return input.split("").sort().join("");
+  }
+  return input;
+}
+```
+
+`deno3.js`:
+```js
+import { denode } from './denode.js'
+
+console.log(denode('NODE'))
+```
+
+```sh
+deno run deno3.js
+# output: DENO
+```
+
+- in `import` statement the file extension is not assumed to be JS, the filetype has to be explicitly defined
+
 ### S4/L29 URL Modules
+
+- Deno recommends the modules to be written in TypeScript
+
+`deno3.js`:
+```js
+import { denode } from './deno2.js'
+import "https://deno.land/std/examples/welcome.ts"
+
+console.log(denode('NODE'))
+```
+
+```sh
+deno info 'deno2.js'
+# no dependency
+
+deno info 'deno3.js'
+# downloads the dependency from the internet
+# compiles because it's a typescript file
+# http dependency is lited
+# local file dependency 'deno2.js' is listed
+```
+
+- any ES module can be used with Deno, even if the package itself is not using deno
+- the remote file is: https://deno.land/std/examples/welcome.ts
+  - if opened from web browser a HTML page is rendered around the file
+  - if referenced from deno package the content of the file is downloaded
 
 ### S4/L30 Standard Library
 
+- First version of the Deno was written in Go language
+  - many concepts originate from Go language
+- Later versions of the Deno were based on Rust
+- JavaScript never had a standard library
+  - no need to reinvent the wheel again
+  - is and will be actively maintained by Deno team
+
 ### S4/L31 3rd Party Modules
+
+- deno doesn't understand CommonJS pattern
+- Deno requires file extension
+- Node now supports ES6 syntax for importing modules
+- NPM packages wouldn't work with Deno
+  - unless the imports are not rewritten by module developers
 
 ### S4/L32 Deno Caching
 
+- Deno caches the downloaded files, e.g.: https://deno.land/std/examples/welcome.ts
+  - no need to download the file again
+  - if hte cache is deleted it automatically downloads the dependencies again
+- cache directory: `$DENO_DIR` - the defaults can be changed it this environment variable is set
+  - Linux/Redox: `$XDG_CACHE_HOME/deno` or `$HOME/.cache/deno`
+  - Windows: `%LOCALAPPDATA%/deno` (`%LOCALAPPDATA%` = `FOLDERID_LocalAppData`)
+  - MacOS: $`HOME/Library/Caches/deno`
+  - if something fails, it falls back to `$HOME/.deno`
+
+```
+deno run deno3.js
+
+deno run --reload deno3.js
+```
+
 ### S4/L33 Deno Caching 2
+
+- if the server storing the dependencies goes down:
+  - node downloads packages into `node_modules` folder
+  - deno caches into `$DENO_DIR` location
+- in production
+
+```
+git clone git@github.com:odziem/planet-csv-deno.git
+cd planet-csv-deno
+```
+
+open and check the content of the dependency:
+```
+open .
+code mod.ts
+```
+
+run the file:
+```
+deno run mod.ts
+
+```
+
+set cache directory:
+```
+mkdir deno_dir
+
+set DENO_DIR=deno_dir     # windwos cmd
+set DENO_DIR ./deno_dir   # fish
+export DENO_DIR=deno_dir  # bash
+
+deno cache mod.ts
+```
+
+- deno cache directory can be added to source control
+
+```sh
+# Download the dependencies.
+DENO_DIR=./deno_dir deno cache src/deps.ts
+
+# Make sure the variable is set for any command which invokes the cache.
+DENO_DIR=./deno_dir deno test src
+
+# Check the directory into source control.
+git add -u deno_dir
+git commit
+```
+
+```sh
+deno run mod.ts
+# not downloading dependencies
+
+ls
+# deno_dir
+```
 
 ### S4/L34 NPM for Deno
 
+- third party packages: https://deno.land/x
+- https://pika.dev/cdn
+  - any package available on NPM is available on Pika
+  - automatically converts npm modules to work with ES6 imports
+  - even Deno can load NPM packages
+
 ### S4/L35 Managing Module Versions
+
+```js
+import { Application } from "https://deno.land/x/abc@v1.0.0-rc10/mod.ts";
+```
+
+- go language convention: ends with `mod.ts`
+- file must me referenced with extension for JS or TS
+
+```js
+import { Application } from "https://deno.land/x/oak/mod.ts"
+import { Application } from "https://deno.land/x/oak@v3.7.0/mod.ts"
+```
+
+- if `@version_number` is not specified in the name of the file, deno downloads the latest version
 
 ### S4/L36 Where the Bleep is package.json?
 
+- `microsoft/TypeScript-Node-Starter`
+  - TypeScript compiler and JavaScript runtume
+
+```sh
+git clone https://github.com/microsoft/TypeScript-Node-Starter.git
+# or
+git clone git@github.com:microsoft/TypeScript-Node-Starter.git
+
+npm install
+# installs all the dependencies and creates node_modules folder
+```
+
+- `package.json`
+  - all the dependencies for the node project
+  - is not a JavaScript standard
+  - was created for Node
+  - not all `package.json` functionalities is currently implemented in deno
+- `node_module` folder is not needed in deno
+  - all packages live in one cache directory
+    - all projects can reuse the cache directory
+    - no need to download again for each project
+
 ### S4/L37 Deps.ts
+
+- dependencies are handled by a single file: `deps.ts `
+  - no need to change every single URL in each file what uses the dependency
+- there is a way to lock the version of pacakages and dependencie like `package-lock.json` does
+  - to not to break the code if a package is updated
 
 ### S4/L38 Locking Dependencies
 
+https://github.com/odziem/nasa-deno
+
+- to avoid possible tampering with the server the referenced file originate from a lock-file can be used (like `package-lock.json`)
+- the versions are stored in file with hash
+- the lock-file can be version controlled to ensure that the same version is used what the coworker/instructor used
+
+```
+deno cache --lock=lock.json --lock-write src/deps.ts
+```
+
 ### S4/L39 Deno Upgrade
+
+```
+deno -V
+deno upgrade
+```
 
 ### S4/L40 Reviewing Deno Modules
 
+- `deps.ts`
+- `mod.ts`
+  - entrypoint of the file, rust conventions
+  - like `index.js` or `index.ts` in node
+- cached dependencies
+  - can be version controlled
+- lockfiles
+- alternative for npm scripts
+
 ### S4/L41 Deno Tooling
 
+- there is very good tooling around JavaScript
+- deno offers:
+  - bundler `deno bundle`
+  - debugger `--inspect`, `--inspect-brk`
+  - dependency inspector `deno info`
+  - documentation generator `deno doc`
+  - formatter `deno fmt`
+  - test runner `deno test`
+  - linter `deno lint`
+
+```sh
+# good:
+deno bundle 'deno3.js' 'deno.bundle.js'
+# bundles deno3.js file with all it's dependencies (deno2.js and welcome.js) into deno.bundle.js
+
+# wrong:
+deno bundle 'deno2.js' 'deno3.js'
+# bundles deno2.js into deno3.js
+# overwrites deno3.js
+```
+
+```sh
+# run deno.bundle.js
+deno run deno.bundle.js
+# produces the same results ad deno3.js
+# it's self contained
+```
+
+- bundle command = functionality what `webpack` provides
+
 ### S4/L42 Deno Tooling 2
+
+```sh
+deno info 'https://deno.land/std/examples/welcome.ts'
+# shows all the dependencies
+
+deno info deno3.js
+# shows all the dependencies
+
+deno doc --help
+# generated documentation from comments
+
+deno fmt deno3.js
+deno fmt deno3.js deno2.js
+# formats the code
+```
+
+- `deno fmt` uses prettier
+  - standard way to format
 
 ## S5 TypeScript?
 

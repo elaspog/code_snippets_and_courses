@@ -263,19 +263,184 @@ https://zerotomastery.io/blog/
 
 ### S3/L20 Deno Game Changers
 
+- First class TypeScript
+  - Deno does not need any module to run TypeScript
+  - Node need a module, like `ts-node`
+- ES modules
+  - Node uses **CommonJS**
+  ```sh
+  npm install bcrypt
+  ```
+  ```js
+  const bcrypt = require("bcrypt");
+  ```
+    - non standard way to include code
+  - ES6 modules
+  ```js
+  import "https://deno.land/std/examples/welcome.ts"
+  ```
+  ```
+  deno run deno.js
+  ```
+    - standard javascript way to import
+- Security first
+  - with Node the installed package can do anything
+  - Deno creates a sandbox
+  ```js
+  import "https://deno.land/std/examples/chat/server.ts"
+  ```
+  ```sh
+  deno run deno.js
+  # Permission Denied
+  deno run --allow-net deno.js
+  # OK
+  ```
+  ```
+  localhost:8080
+  # chat application running
+  ```
+- "Decentralized" modules
+  - NPM is owned by Microsoft
+  - with deno any code can be imported via it's HTTP url
+- Standard Library
+  - approved/developed/tested by the creators of deno
+
 ### S3/L21 Deno Game Changers 2
+
+- Built In Tooling
+  - Professional setup for Node: e.g. `ts-node` to run TypeScript, `jest` as testing library, `prettier` to format code, `nodemon` to check file changes
+  - Deno has these built-in
+- Browser Compatible API
+  - unless Deno namespace is used, the program should run in the browser as well without changing anything
+  - great for frontend developers
+  - deno implements web standards
+- Single Executable
+  - portable
+- Async returns Promises
+  - Node was created before introducing Promise syntax in JavaScript
+    - sometimes needs wrapping: Promisify
+    - new JS features are followed by workarounds
+  - Deno
+    - cleaner version of JavaScript
+    - JavaScript Promise is translated to Rust Future
+- Opinionated Modules
+  - Deno Manual / Style Guide
 
 ### S3/L22 Will Deno Kill NodeJS?
 
 ### S3/L23 Single Executable To Rule Them All
 
+https://github.com/denoland/deno/issues/986
+
+- Deno = Runtime + Package Manager
+  - the runtime executes the JavaScript files given as a parameter
+- Single Executable = run and deploy program without external dependencies
+  - the executable code is packed with the runtime
+  - language like go has this feature `go build main.go`
+
 ### S3/L24 Deno Security
+
+https://github.com/denoland/deno
+
+- General rule: don't trust in anybody
+  - if not writing your own code
+  - if accepting user input
+  - if using third party modules
+- (Node) Projects can be hackeds
+- SandBox examples:
+  - Virtual Machine, Docker Container, Browser sandbox, Mobile Apps
 
 ### S3/L25 Deno Permissions
 
+```
+# PowerShell
+echo $env:USERNAME
+
+# Command Prompt
+echo %USERNAME%
+
+# Bash
+echo $USER
+```
+
+main.ts:
+```js
+console.log("Hello", Deno.env.get("USER"));
+```
+
+```
+deno run main.ts
+# Permission error
+
+deno run --allow-env main.ts
+# Permission given for accessing enviroment variables
+```
+
+Not recommended to give all permissions:
+```
+deno run --allow-all main.ts
+deno run -A main.ts
+```
+
 ### S3/L26 Deno Permissions 2
 
+- to the program from command line a shell script can be used to define the security parameters, but
+  - different versions of the scripts (testing, running, caching the program) are needed
+  - multiple platforms/shells/terminals require different scripts
+- to avoid maintaining several versions of the scripts, the program can be installed with permissions
+
+working directory `deno-example`:
+```
+# deno install
+deno install --allow-env main.ts
+# deno-example can be run from anywhere
+
+deno-example
+```
+
+```
+deno help example
+```
+- install can be done with explicit naming, with `-n/--name`
+- otherwise parent path is used
+
 ### S3/L27 Deno Permissions 3
+
+https://github.com/srackham/drake
+
+- Task Runner - to help development process with custom set of commands/tasks
+  - Build Automation Tools: Make, Ant, Rake, MSBuild, etc.
+  - Deno's variant of Make is Drake
+
+Drakefile.ts:
+```js
+import { desc, run, task, sh } from "https://deno.land/x/drake@v1.2.3/mod.ts";
+
+desc("Minimal Drake task");
+task("hello", [], async function() {
+  console.log("Hello from Drake!");
+  await sh("deno run --allow-env main.ts");
+});
+
+run()
+```
+
+```sh
+# give all permissions do Drakefile, because it's just a messenger
+# give the task name
+deno run -A Drakefile.ts hello
+# downloading latest files from Drake
+# starting task
+# message from Drakefile
+# message form program
+# execution time
+```
+
+- Drake
+  - provides a full API for scripting tasks
+  - Drakefiles are fully featured Deno typescript programs, they can do anything
+    - that NPM scripts do in Node and more
+    - that deno does
 
 ## S4 Deno Modules And Tooling
 

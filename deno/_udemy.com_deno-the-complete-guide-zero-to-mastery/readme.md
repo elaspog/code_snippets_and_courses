@@ -1784,13 +1784,105 @@ let x = 3;
 
 ### S12/L143 HTTP/HTTPS
 
+- HTML, CSS, JavaScript
+- HTTP/HTTPS
+  - client-server protocol
+  - request-response
+    - request:
+      - Method: GET, POST, PUT, DELETE
+      - data: query string, body
+    - response:
+      - HTTP Status Message (1xx, 2xx, 3xx, 4xx, 5xx)
+      - data (e.g.: HTML)
+  - HTTPS - Secure HTTP
+    - SSL, TLS
+
 ### S12/L144 JSON
+
+- JSON - JavaScript Object Notation
+  - Syntax for storing and exchanging data
+  - is text
+- JSON alternative: XML
+- `JSON.parse()`, `JSON.stringify()`
 
 ### S12/L145 JSON vs Form Data
 
+- submit data to the server:
+  - originally: sending `<form>` data with POST or GET
+  - now: sending content of `<input>` in JSON format (through **AJAX**)
+
 ### S12/L146 AJAX
 
+*JSONView Chrome extension*
+
+- AJAX
+  - allows to read from a webserver after the page has loaded and update the webpage without reloading the page and send data in the background
+- XHR - XML HTTP Request
+  - old way
+- jQuery
+  - newer way using a library
+- fetch
+  - supported by browsers
+
+XHR:
+```js
+var request = new XMLHttpRequest();
+request.open('GET', '/my/url', true);
+
+request.onload = function(){
+  if (request.status >= 200 && request.status < 400 ) {
+    // Success!
+    var data = JSON.parse(request.responseText;
+  } else {
+    // We reached our target server, but it returned an error
+  }
+};
+
+request.onerror = function(){
+  // There was a connection error of some sort
+};
+
+request.send();
+```
+
+jQuery:
+```js
+$.getJSON('/my/url', function(data){
+
+});
+```
+
+fetch:
+```js
+fetch('/my/url').then(response => {
+  console.log(response);
+});
+```
+
+- Single Page Application
+  - a base HTML is loaded
+  - the content is built on the fly based on data fetched from the server
+- Promise
+  - the result or expected may not be present yet but will be present
+
+```js
+fetch('https://jsonplaceholder.typicode.com/users');
+fetch('https://jsonplaceholder.typicode.com/users').then(response => console.log(response));
+fetch('https://jsonplaceholder.typicode.com/users').then(response => response.json());
+fetch('https://jsonplaceholder.typicode.com/users').then(response => response.json()).then(data => console.log(data));
+```
+
 ### S12/L147 APIs
+
+https://jsonplaceholder.typicode.com  
+https://jsonplaceholder.typicode.com/users  
+https://jsonplaceholder.typicode.com/comments  
+https://robohash.org/<NUMBER>  
+https://api.github.com/users/<USERNAME>  
+https://www.w3schools.com/xml/simple.xml  
+
+- API - Application Programming Interface
+  - a way how people and/or machines share information
 
 ## S13 Extras
 

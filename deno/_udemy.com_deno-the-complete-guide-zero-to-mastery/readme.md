@@ -760,25 +760,245 @@ deno fmt deno3.js deno2.js
 
 ### S6/L44 Code Along
 
+https://github.com/odziem/planet-csv-deno
+
 ### S6/L45 Reading Files With Deno
+
+**heeelo.txt**  
+**mod.ts**  
+
+`heeelo.txt`:
+```txt
+heeelo world!
+```
+
+`mod.ts`:
+```js
+async function readFile() {
+  const data = await Deno.readTextFile("heeelo.txt");
+  console.log(data);
+}
+
+await readFile();
+```
+
+```sh
+deno run --allow-read mod.ts
+```
 
 ### S6/L46 Async vs Sync File I/O
 
+https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/async_function
+
+- Synchronous version: `readTextFileSync()`
+  - waits until completes
+- Asynchronous version: `readTextFile()`
+  - runs some other code if available until completes
+- Top level `async`/`await`
+  - no need to wrap `await readFile();` inside a function or promise
+
 ### S6/L47 Exercise: Async vs Sync File IO
+
+https://doc.deno.land/https/github.com/denoland/deno/releases/latest/download/lib.deno.d.ts
+
+```
+for await (const dirEntry of Deno.readDir(".")) {
+  console.log(dirEntry.name);
+}
+```
+
+- the path to the current working directory
+  - `Deno.cwd()` or `"."`
+- `AsyncIterable` is returned by `Deno.readDir`
+- `Deno.readDir` returns an `AsyncIterable` which is why we use the `for await ... of` statement
+- The synchronous version `Deno.readDirSync` can be used with a regular `for ... of` statement
+
+https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/for-await...of
+
+```sh
+deno run --allow-read main.ts
+```
 
 ### S6/L48 Importing The Path Module
 
+**text_files/heeelo.txt**  
+**mod.ts**  
+
+`mod.ts`:
+```typescript
+import { join } from "https://deno.land/std/path/mod.ts";
+
+async function readFile() {
+  const path = join("text_files", "heeelo.txt");
+  const data = await Deno.readTextFile(path);
+  console.log(data);
+}
+
+await readFile();
+```
+
+- `join()` supports different operating systems
+
+```sh
+deno run --allow-read mod.ts
+```
+
 ### S6/L49 Downloading Our Planets Data
+
+https://exoplanetarchive.ipac.caltech.edu/docs/data.html
+
+- NASA Exoplanet Archive
 
 ### S6/L50 Reading Our CSV Data
 
+*kepler_exoplanets_nasa.csv* (needs to be downloaded, file too big)  
+**mod.ts**  
+
+https://doc.deno.land/https/deno.land/std/io/bufio.ts  
+https://doc.deno.land/https/deno.land/std/encoding/csv.ts  
+
+```typescript
+import { join } from "https://deno.land/std/path/mod.ts";
+import { BufReader } from "https://deno.land/std/io/bufio.ts";
+import { parse } from "https://deno.land/std/encoding/csv.ts";
+
+async function loadPlanetsData() {
+
+  const path = join(".", "kepler_exoplanets_nasa.csv");
+  const file = await Deno.open(path);
+  const bufReader = new BufReader(file);
+  const result = await parse(bufReader, {
+    header: true,
+    comment: "#",
+  });
+  Deno.close(file.rid);
+  console.log(result);
+}
+
+await loadPlanetsData();
+```
+
+```sh
+deno run --allow-read mod.ts
+```
+
 ### S6/L51 Exercise: Resource Leaks
+
+If the file is not closed:
+
+`mod.ts`:
+```typescript
+const files = [];
+
+while (true) {
+  const file = await Deno.open("main.ts");
+  const fileCount = files.push(file);
+  console.log(`Pushing... file #${fileCount}`);
+}
+```
+
+Then The Deno runtime eventually terminates:
+
+```
+Pushing... file #12787
+Pushing... file #12788
+Pushing... file #12789
+Pushing... file #12790
+Pushing... file #12791
+thread 'main' panicked at 'called `Result::unwrap()` on an `Err` value: Os { code: 24, kind: Other, message: "Too many open files" }', cli/fs.rs:87:15
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+fatal runtime error: failed to initiate panic, error 5
+Abort trap: 6
+```
+
+The operating system has reached a maximum amount of open files and won't let us open anymore.
 
 ### S6/L52 Finding Habitable Planets
 
+*kepler_exoplanets_nasa.csv* (needs to be downloaded, file too big)  
+**mod.ts**  
+
+- Type safety by Interface `interface Planet ...`
+- TypeAssertion: `(result as Array<Planet>)`
+- Type casting: `Number(planet["..."]);`
+
+```typescript
+import { join } from "https://deno.land/std/path/mod.ts";
+import { BufReader } from "https://deno.land/std/io/bufio.ts";
+import { parse } from "https://deno.land/std/encoding/csv.ts";
+
+interface Planet {
+  [ key : string ] : string
+}
+
+async function loadPlanetsData() {
+
+  const path = join(".", "kepler_exoplanets_nasa.csv");
+  const file = await Deno.open(path);
+  const bufReader = new BufReader(file);
+  const result = await parse(bufReader, {
+    header: true,
+    comment: "#",
+  });
+  Deno.close(file.rid);
+
+  const planets = (result as Array<Planet>).filter((planet) => {
+    const planetaryRadius = Number(planet["koi_prad"]);
+    const stellarMass = Number(planet["koi_smass"]);
+    const stellarRadius = Number(planet["koi_srad"]);
+
+    return planet["koi_disposition"] === "CONFIRMED"
+      && planetaryRadius > 0.5 && planetaryRadius < 1.5
+      && stellarMass > 0.78 && stellarMass < 1.04
+      && stellarRadius > 0.99 && stellarRadius < 1.01;
+  });
+  return planets;
+}
+
+const newEarths = await loadPlanetsData();
+console.log(`${newEarths.length} habitable planets found!`);
+```
+
+```sh
+deno run --allow-read mod.ts
+```
+
 ### S6/L53 Exploring Planets With 3rd Party Modules
 
+*kepler_exoplanets_nasa.csv* (needs to be downloaded, file too big)  
+**mod.ts**  
+
+https://github.com/lodash/lodash
+
+```typescript
+// ...
+//import * as _ from "https://raw.githubusercontent.com/lodash/lodash/4.17.15-es/lodash.js";
+import { pick } from "https://deno.land/x/lodash@4.17.15-es/lodash.js";
+// ...
+async function loadPlanetsData() {
+  // ...
+  return planets.map((planet) => {
+    //return _.pick(planet, [
+    return pick(planet, [
+      "koi_prad",
+      "koi_smass",
+      "koi_srad",
+      "kepler_name",
+      "koi_count",
+      "koi_steff"
+    ]);
+  });
+}
+// ...
+for (const planet of newEarths) {
+  console.log(planet);
+}
+// ...
+```
+
 ### S6/L54 Exercise: Exploring Earth-like Planets
+
+https://github.com/odziem/planet-csv-deno
 
 ## S7 Exercise: SpaceX Launch Data
 

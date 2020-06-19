@@ -1004,29 +1004,266 @@ https://github.com/odziem/planet-csv-deno
 
 ### S7/L55 Code Along
 
+https://github.com/odziem/fetch-deno
+
 ### S7/L56 Recommended Path: APIs
+
+- API for HTTP, AJAX, JSON: `fetch()`
 
 ### S7/L57 fetch()
 
+https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch  
+https://github.com/r-spacex/SpaceX-API  
+
 ### S7/L58 Fetching SpaceX Launch Data
+
+**mod.ts**
+
+`mod.ts`:
+```typescript
+async function downloadLaunchData(){
+  const response = await fetch("https://api.spacexdata.com/v3/launches", {
+    method: "GET",
+  });
+
+  const launchData = await response.json();
+  console.log(launchData);
+}
+
+await downloadLaunchData();
+```
+
+```sh
+deno run --allow-net=api.spacexdata.com mod.ts
+```
 
 ### S7/L59 Exercise: Making a POST Request
 
+**mod.ts**
+
+- POST request data:
+```
+{
+  name: "Elon Musk",
+  job: "billionaire"
+}
+```
+- POST request header:
+```
+"Content-Type": "application/json; charset=UTF-8"
+```
+
+```typescript
+const response = await fetch("https://reqres.in/api/users", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json; charset=UTF-8"
+  },
+  body: JSON.stringify({
+    name: "Elon Musk",
+    job: "billionaire"
+  })
+});
+
+const body = await response.json();
+
+console.log(body);
+```
+
+```sh
+deno run --allow-net mod.ts
+```
+
 ### S7/L60 Logging
+
+**mod.ts**
+
+https://deno.land/std/log
+
+- in NodeJS a possible logger solution: `winston`
+  - can log to: terminal, log file, external service (e.g. log aggregation service)
+- Deno
+  - the built-in log module can do the same as the above NodeJS module
+  - has 5 different log levels (`log.debug()`, `log.info`(), `log.warning()`, `log.error()`, `log.critical()`)
+  - `log.setup()` - to configure logger
+    - minimum log level
+    - file handler, console logger
+    - color code input
+    - log rotation
+
+```typescript
+import * as log from "https://deno.land/std/log/mod.ts";
+
+await log.setup({
+  handlers: {
+    console: new log.handlers.ConsoleHandler("DEBUG"),
+  },
+  loggers: {
+    // configure default logger available via short-hand methods above
+    default: {
+      level: "DEBUG",
+      handlers: ["console"],
+    },
+  }
+});
+
+async function downloadLaunchData(){
+  log.info("Downloading launch data...");
+  log.warning("This is a warning.");
+  const response = await fetch("https://api.spacexdata.com/v3/launches", {
+    method: "GET",
+  });
+
+  if (!response.ok) {
+    log.warning("Problem downloading launch data.");
+    throw new Error("Launch data download failed.");
+  }
+
+  const launchData = await response.json();
+  // console.log(launchData);
+}
+
+await downloadLaunchData();
+```
 
 ### S7/L61 --reload Cache For Troubleshooting
 
+```sh
+deno run --allow-net=api.spacexdata.com mod.ts
+```
+
 ### S7/L62 Exploring SpaceX Launch Data
 
+**mod.ts**
+
+`--reload` flag ensure downloading the dependencies before running:
+
+```sh
+deno run --reload --allow-net=api.spacexdata.com mod.ts
+```
+
+```typescript
+// ...
+interface Launch {
+  flightNumber: number;
+  mission: string;
+}
+
+const launches = new Map<number, Launch>();
+
+// ...
+async function downloadLaunchData(){
+  // ...
+  const launchData = await response.json();
+
+  for (const launch of launchData){
+    const flightData = {
+      flightNumber : launch["flight_number"],
+      mission: launch["mission_name"],
+    };
+
+    launches.set(flightData.flightNumber, flightData);
+    log.info(JSON.stringify(flightData));
+  }
+}
+```
+
 ### S7/L63 Postman and Insomnia
+
+https://www.postman.com/  
+https://insomnia.rest/  
+
+- Postman - Collaborative API testing tool
+  - create HTTP requests, organize into collections, share with teammates
+  - API client: REST, SOAP, GraphQL
+  - Automated testing
+  - Design and Mock
+  - Documentation
+  - Monitors
+  - Wokspaces
+- Insomnia - helps design and debug APIs
+  - competitor of Postman
 
 ### S7/L64 Quick Note: Rainbow Editor
 
 ### S7/L65 SpaceX Customers Data
 
+**mod.ts**
+
+```typescript
+import * as _ from "https://deno.land/x/lodash@4.17.15-es/lodash.js";
+// ...
+interface Launch {
+  flightNumber: number;
+  mission: string;
+  rocket: string;
+  customers: Array<string>;
+}
+// ...
+async function downloadLaunchData(){
+  // ...
+  for (const launch of launchData){
+
+    const payloads = launch["rocket"]["second_stage"]["payloads"];
+    const customers = _.flatMap(payloads, (payload : any) => {
+      return payload["customers"];
+    });
+
+    const flightData = {
+      flightNumber : launch["flight_number"],
+      mission: launch["mission_name"],
+      rocket: launch["rocket"]["rocket_name"],
+      customers: customers
+    };
+    // ...
+  }
+}
+
+await downloadLaunchData();
+```
+
 ### S7/L66 import.meta
 
+**mod.ts**
+
+- a code can be imported by another module (via `export`) or can run directly
+- `import.meta` - object defined in modules that provides metadata
+  - `import.meta.main` - context how the code being executed
+    - `true` - code runs as a standalone program
+    - `false` - code is being imported by another module
+  - `import.meta.url` - full absolute path to the file
+    - the folder where the module is executed from can be detected
+  - meta object is available when runned by deno or imported by another module
+  - when executed from **deno repl**
+    - `import.meta` is only available inside of modules
+  - from browser only `url` property is available
+
+```typescript
+export async function downloadLaunchData(){
+  // ...
+}
+
+if (import.meta.main) {
+  await downloadLaunchData();
+  log.info(JSON.stringify(import.meta));
+  log.info(`Downloaded data for ${launches.size} SpaceX launches.`);
+}
+```
+
 ### S7/L67 Exercise: import.meta
+
+https://github.com/odziem/github-fetcher-exercise
+
+Uses the GitHub API to fetch the descriptions of some big name organizations:
+
+```sh
+git clone git@github.com:odziem/github-fetcher-exercise.git
+# or
+git clone https://github.com/odziem/github-fetcher-exercise.git
+
+deno run --allow-net main.ts
+deno run --allow-net mod.ts
+```
 
 ## S8 NASA Project: Deno For Backend Development
 

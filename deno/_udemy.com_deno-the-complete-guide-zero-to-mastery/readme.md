@@ -1269,61 +1269,1033 @@ deno run --allow-net mod.ts
 
 ### S8/L68 Introduction To Backend
 
+- Backend models:
+  - a process per user request
+    - can't handle too much concurent requests
+    - e.g.: PHP
+  - single process with thread pool handles every request
+    - works well when the main performance problem is I/O
+    - e.g.: Node, Deno
+
 ### S8/L69 Deno Backend Frameworks And Libraries
+
+https://oakserver.github.io/oak/  
+https://drash.land/  
+https://github.com/NMathar/deno-express  
+https://github.com/sholladay/pogo  
+https://servestjs.org/  
+
+- HTTP methods
+  - POST, GET, PUT, DELETE, ...
+- REST (CRUD)
+  - Create, Read, Update, Delete
+- Frameworks:
+  - Drash
+    - REST microframework
+    - inspired by Python Flas, PHP Laravel, PHP Tonic
+    - uses classes
+  - Deno Express
+  - pogo
+    - designed to encourage reliable and testable applications
+    - routes are pure functions
+    - responds with automatic JSON
+    - Build-in support for React and JSX
+    - inspired by Hapi framework
+  - hapi
+  - servest
+    - server side rendering
+  - oak
+    - similar to express, nearly identical to koa
 
 ### S8/L70 Code Along
 
+https://github.com/odziem/nasa-deno
+
 ### S8/L71 Oak
+
+**mod.ts**
+
+https://doc.deno.land/https/deno.land/x/oak/mod.ts
+https://oakserver.github.io/oak
+
+`mod.ts`:
+```typescript
+import { Application } from "https://deno.land/x/oak@v5.0.0/mod.ts";
+
+const app = new Application();
+const PORT = 8000;
+
+app.use((ctx) => {
+  ctx.response.body = `
+    {___     {__      {_         {__ __        {_       
+    {_ {__   {__     {_ __     {__    {__     {_ __     
+    {__ {__  {__    {_  {__     {__          {_  {__    
+    {__  {__ {__   {__   {__      {__       {__   {__   
+    {__   {_ {__  {______ {__        {__   {______ {__  
+    {__    {_ __ {__       {__ {__    {__ {__       {__
+    {__      {__{__         {__  {__ __  {__         {__
+                    Mission Control API`;
+});
+
+if (import.meta.main) {
+  await app.listen({
+    port: PORT
+  });
+}
+```
+
+- oak wraps and starts a HTTP server from deno std (but can do much more)
+- middlewares are functions
+
+```
+deno run --allow-net mod.ts
+```
 
 ### S8/L72 What Is Middleware?
 
+- Middleware
+  - special function
+  - runs between the request (coming into API) and response (coming out of API)
+- Context object
+  - Request (get methods)
+    - url
+    - secure
+    - method
+    - body
+    - headers
+  - Response (get, set methods)
+    - redirect
+    - type
+    - status
+    - body
+    - headers
+- next function (optional)
+  - if not included as a parameter, it defines an endpoint middleware
+  - starts to execute the downstream middleware
+
+```
+app.use(async function(ctx, next) {
+  // logic
+});
+
+app.use(async (ctx, next) => {
+  // logic
+});
+```
+
 ### S8/L73 Working With Middleware
+
+**mod.ts**
+
+- `next()` is asynchronous function
+  - allows to control exactly when the next middleware is called
+
+```typescript
+app.use(async (ctx, next) => {
+    await next();
+    const time = ctx.response.headers.get("X-Response-Time");
+    console.log(`${ctx.request.method} ${ctx.request.url}: ${time}`);
+});
+
+app.use(async (ctx, next) => {
+    const start = Date.now();
+    await next();
+    const delta = Date.now() - start;
+    ctx.response.headers.set("X-Response-Time", `${delta}ms`);
+});
+```
+
+Postman:
+```
+localhost:8000
+```
+
+- `X-Response-Time` header is written
+  - `X` means that is a non-standard header
+- middleware is measuring only the time what took for the body to be set
+- Postman is measuring entire roundtrip time between request and response
 
 ### S8/L74 Reviewing Our Front End Code
 
+**front-end-project/index.html**
+**front-end-project/images/favicon.png**
+**front-end-project/javascripts/script.js**
+**front-end-project/stylesheets/style.css**
+
+https://adventofcode.com/2019/day/1
+
+- `??` - Nullish coalescing operator
+  - returns the second field only if the first field is `null` or `undefined`
+- `||` - Double or operator
+  - returns the second field if the first field is  `null`, `undefined` or any falsy value
+
+```typescript
+const target = launch.target ?? "";
+```
+
 ### S8/L75 Exercise: Reviewing Our Front End Code
 
+**script.js**
+
+`script.js`:
+```ts
+let launches = [];
+//...
+function loadPlanets() {
+  const planets = [
+    { kepler_name: "X Æ A-12" },
+    { kepler_name: "Beta Gamma B" }
+  ];
+  const planetSelector = document.getElementById("planets-selector");
+  planets.forEach((planet) => {
+    planetSelector.innerHTML += `<option value="${planet.kepler_name}">${planet.kepler_name}</option>`;
+  });
+}
+//...
+function submitLaunch() {
+  const target = document.getElementById("planets-selector").value;
+  const launchDate = new Date(document.getElementById("launch-day").value);
+  const mission = document.getElementById("mission-name").value;
+  const rocket = document.getElementById("rocket-name").value;
+  const flightNumber = launches[launches.length - 1]?.flightNumber + 1 || 1;
+  const customers = [ "NASA", "ZTM" ];
+  launches.push({
+    target,
+    launchDate: launchDate / 1000,
+    mission,
+    rocket,
+    flightNumber,
+    customers,
+    upcoming: true,
+  });
+  document.getElementById("launch-success").hidden = false;
+}
+```
+
 ### S8/L76 Serving Static Files
+
+**public/** (**front-end-project** folder was renamed to this)  
+**mod.ts**  
+
+`mod.ts`:
+```typescript
+import { Application, send } from "https://deno.land/x/oak@v5.0.0/mod.ts";
+// ...
+app.use(async (ctx) => {
+  const filePath = ctx.request.url.pathname;
+  const fileWhitelist = [
+    "/index.html",
+    "/javascript/script.js",
+    "/stylesheets/style.css",
+    "/images/favicon.png",
+  ];
+  await send(ctx, filePath, {
+    root: `${Deno.cwd()}/public`,
+  });
+});
+```
+
+- Whitelisting for static files
+
+```sh
+deno run --allow-net --allow-read mod.ts
+```
+
+Browser:
+```sh
+localhost:8000/index.html
+# works
+
+localhost:8000
+# not working
+```
+
+- Can't serve the static files and ASCII art content without router
 
 ### S8/L77 Exercise: Fixing A Security Issue
 
 ### S8/L78 Fixing Our Security Vulnerability
 
+**mod.ts**
+
+`mod.ts`:
+```typescript
+app.use(async (ctx) => {
+  const filePath = ctx.request.url.pathname;
+  const fileWhitelist = [
+    "/index.html",
+    "/javascript/script.js",
+    "/stylesheets/style.css",
+    "/images/favicon.png",
+  ];
+  if (fileWhitelist.includes(filePath)){
+    await send(ctx, filePath, {
+      root: `${Deno.cwd()}/public`,
+    });
+  }
+});
+```
+
 ### S8/L79 Oak Router
+
+**api.ts**  
+**mod.ts**  
+
+- Router - registers middleware
+  - maps HTTP Method with a path
+    - corresponding method for each HTTP Method
+
+`api.ts`:
+```typescript
+import { Router } from "https://deno.land/x/oak@v5.0.0/mod.ts";
+const router = new Router();
+router.get("/", (ctx) => {
+    ctx.response.body = `Mission Control API`;
+});
+export default router;
+```
+
+- if in different file the router should be `export`ed and `import`ed
+  - `default` keyword helps to import with any name
+
+`mod.ts`:
+```typescript
+import api from "./api.ts";
+// ...
+app.use(api.routes());
+// static file middleware
+// ...
+```
+
+- router should precede the static file middleware to catch the event
+
+
+Browser:
+```sh
+localhost:8000/index.html
+# works
+
+localhost:8000
+# works
+```
+
+- Oak takes care automatically of sending 404 error if no file path matches
 
 ### S8/L80 Method Not Allowed and OPTIONS
 
+**mod.ts**
+
+https://restapitutorial.com/lessons/httpmethods.html  
+https://developer.mozilla.org/en-US/docs/Web/HTTP/Status  
+
+Typical usage:
+```typescript
+app.use(router.routes());
+app.use(router.allowMethods());
+```
+
+- `allowMethods()`
+  - **not allowed** - if none of the routes handle a method
+    - more specific than 404 error by REST specification
+  - **not implemented** - if a method is supported by some routes, but not a particular matched router
+- `OPTIONS` method
+  - helps make API to be discoverable by robots, crawlers
+  - no body is returned
+  - header describes what methods are allowed on the endpoint
+- `HEAD` method
+  - returns the same as `GET`, but does not give back content, just the header
+  - useful when downloading the file and the file size is interesting
+
 ### S8/L81 /planets
+
+*data/kepler_exoplanets_nasa.csv* (needs to be downloaded, file too big)  
+**models/planets.ts**  
+**api.ts**  
+**mod.ts**  
+*public/index.html*  
+*public/images/favicon.png*  
+*public/javascripts/script.js*  
+*public/stylesheets/style.css*  
+
+```ts
+let planets : Array<Planet>;
+```
+
+- `let variable_name` - creates a singleton
+  - only one object will exist even if it will be imported in more different places
+
+```ts
+interface Planet {
+  [ key : string ] : string
+}
+// same as
+type Planet = Record<string, string>;
+```
+
+```sh
+deno run --allow-read --allow-net mod.ts
+```
 
 ### S8/L82 Exercise: Populating The Dropdown Menu
 
+https://en.wikipedia.org/wiki/List_of_common_astronomy_symbols
+
 ### S8/L83 Planets Data To The Frontend
+
+**public/index.html**  
+**public/javascripts/script.js**  
+
+- Deno is
+  - serving the static files of the frontend
+  - hosting the API
+- No need to specify host, IP address or port
+
+Prevent Deno from running TypeScript checks on JavaScript file
+```ts
+// @ts-nocheck
+```
+
+```ts
+function loadPlanets() {
+  return fetch("/planets")
+    .then((planetsResponse) => planetsResponse.json())
+    .then((planets) => {
+      const planetSelector = document.getElementById("planets-selector");
+      planets.forEach((planet) => {
+        planetSelector.innerHTML += `<option value="${planet.kepler_name}">${planet.kepler_name}</option>`;
+      });
+    });
+}
+```
 
 ### S8/L84 Testing With Deno
 
+**planets.test.ts**
+
+- Testing options
+  - TDD - Test Driven Development
+  - write tests after feature development
+- Deno includes:
+  - Test runner in the CLI
+    - CLI command: `deno test`
+  - Assertions in the standard library
+    - `AssertEquals`, `AssertStrictEq`, `AssertThrows`, `AssertThrowsAsync`
+  - Built-in test fixtures with `Deno.test()`
+- Testig Frameworks
+  - Node (3rd party): **Mocha**, **Jest**
+  - Deno: **Jest**
+
+```
+deno test
+```
+
+`planets.test.ts`:
+```
+Deno.test();
+```
+
 ### S8/L85 Testing With Deno 2
 
+**planets.test.ts**  
+
+https://deno.land/manual/testing  
+https://deno.land/std/testing  
+
+`planets.test.ts`:
+```ts
+Deno.test({
+  name: "example test",
+  fn() {
+    console.log("hello from our test");
+  }
+});
+```
+
+- Test runner
+  - runs tests on all the files of the project ending with `.test.js`, `.test.ts`, `.test.jsx`, `.test.tsx`
+    - `deno test`
+  - can run tests for only specific files
+    - `deno test models/planets.test.ts`
+
+```ts
+import { assertEquals, assertNotEquals } from "https://deno.land/std/testing/asserts.ts";
+```
+
+Long (object based) syntax can handle ignore or condition:
+```
+    ignore: true,
+// or
+    ignore: Deno.build.os === "darwin",
+    ignore: Deno.build.os === "linux",
+    ignore: Deno.build.os === "windows",
+```
+
+Commands for checking **metrics** and **resources**:
+```ts
+deno.metrics();
+// OpsDispatchedAsync
+// OpsCompletedAsync
+
+deno.resources();
+```
+
+- More operations were dispatched than completed
+
+Ignores not completed operations:
+```ts
+Deno.test({
+    name: "ops leak",
+    sanitizeOps: false, // ignores dispatched but not completed async operations
+    fn() {
+      setTimeout(console.log, 10000);
+    },
+});
+```
+
+```ts
+deno test
+```
+
+Ignores opened, but not closed resources:
+```ts
+Deno.test({
+    name: "resource leak",
+    sanitizeResources: false,   // ignores not closed resources
+    async fn() {
+      await Deno.open("./models/planets.ts");   // not closing the file
+    },
+});
+```
+
+```sh
+deno test --allow-read
+```
+
+```sh
+deno --help
+
+deno test --help
+deno test --failfast
+deno test --filter leak
+```
+
 ### S8/L86 Testing With Deno 3
+
+```sh
+deno run --allow-read models/planets.ts
+```
+
+`planets.ts`:
+```ts
+export function filterHabitablePlanets(planets : Array<Planet>){
+  return planets.filter((planet) => {
+    // ...
+  });
+}
+```
+
+`planets.test.ts`:
+```ts
+import { filterHabitablePlanets } from "./planets.ts";
+
+const HABITABLE_PLANET = {
+    koi_disposition: "CONFIRMED",
+    koi_prad: "1",
+    koi_srad: "1",
+    koi_smass: "1",
+};
+
+const NOT_CONFIRMED = {
+    koi_disposition: "FALSE POSITIVE",
+};
+
+// more test cases
+
+Deno.test("filter only habitable planets", () => {
+
+    const filtered = filterHabitablePlanets([
+        HABITABLE_PLANET,
+        NOT_CONFIRMED,
+        // more test case objects
+    ]);
+
+    assertEquals(filtered, [
+        HABITABLE_PLANET,
+    ]);
+});
+
+```
+
+```sh
+deno test --allow-read  
+```
 
 ### S8/L87 Quick Note: Replace in Files
 
 ### S8/L88 Logging In Our API
 
+**mod.ts**  
+**planets.ts**  
+
+`mod.ts`:
+```ts
+import * as log from "https://deno.land/std/log/mod.ts";
+// ...
+await log.setup({
+  handlers: {
+    console: new log.handlers.ConsoleHandler("INFO"),
+  },
+  loggers: {
+    default: {
+      level: "INFO",
+      handlers: ["console"]
+    },
+  },
+});
+// ...
+if (import.meta.main) {
+  log.info(`Starting server on port ${PORT}....`);
+  // ...
+}
+```
+
+`planets.ts`:
+```ts
+import * as log from "https://deno.land/std/log/mod.ts";
+// ...
+log.info(`${planets.length} habitable planets found!`);
+```
+
 ### S8/L89 Error Handling
+
+Option 1:
+```ts
+try {
+  const file = await deno.open(path);
+} catch (err) {
+  //...
+}
+```
+
+Option2: **error handling middleware**
+`mod.ts`
+```ts
+// final handler, handle application error
+app.addEventListener("error", (event) => {
+  log.error(event.error);
+});
+
+// at the top of the middleware chain:
+app.use(async (ctx, next) => {
+  try {
+    await next();
+  } catch (err) {
+    // log.error(err);
+    ctx.response.body = "Internal server error";
+    throw err;
+  }
+});
+```
+
+- log error
+- send error message
+  - the returned content shouldn't be too chatty about the error
+  - hackers may take an advantage of this
+- throw the error forward
+  - the middleware is not the final handler
+  - will be handled by Oak application, which extends the `EventTarget` interface
+    - allows to listen for the events, the error event is one of them
+
+test the error: `api.ts`
+```ts
+router.get("/planets", (ctx) => {
+  // throw new Error("Sample error");
+  ctx.throw(501, "Sorry, planets aren't available!");
+  ctx.response.body = planets.getAllPlanets();
+});
+```
+
+postman:
+```
+localhost:8000/planets
+```
+
+- Oak for `ctx.throw(error_code, "message");` function:
+  - will not pass 5xx error messages to the client
+    - instead of the message the `Not implemented` will be returned
+  - will pass 4xx error message to the client
+- ways to throw error:
+  - `throw new Error("Sample error");`
+  - `ctx.throw(501, "Sorry, planets aren't available!");`
+
+This code was not producing the same output as in the lecture for Error object.
 
 ### S8/L90 JavaScript Maps
 
+Object:
+```js
+const capitalCities = {};
+capitalCities.japan = "Tokyo";
+capitalCities.india = "New Delhi";
+```
+
+Map:
+```js
+const capitalCities = new Map();
+capitalCities.set("japan", "Tokyo");
+capitalCities.set("india", "New Delhi");
+```
+
+- The key differences between Maps and Objects is that Maps preserve the order of insertions
+
+Works for Map only:
+```js
+// assign value
+capitalCities.get("japan");
+// => Tokyo
+
+capitalCities.has("canada")
+// => false
+
+for (const city of capitalCities.values()) {
+  console.log(city);
+}
+
+Array.from(capitalCities.values());
+// => [ "Tokyo", "New Delhi” ]
+```
+
 ### S8/L91 /launches
+
+**launches.ts**  
+**api.ts**  
+**public/javascript/script.js**  
+
+API:
+```
+https://api.spacexdata.com/v3/launches
+```
+
+Update interface and data representation, download data when used as module and create logic for returning data, `launches.ts`:
+```ts
+interface Launch {
+  // ...
+  launchDate: number;
+  upcoming: boolean;
+  success?: boolean;
+  target?: string;
+}
+// ...
+const flightData = {
+  // ...
+  launchDate: launch["launch_date_unix"],
+  upcoming: launch["upcoming"],
+  success: launch["launch_success"],
+  customers: customers
+};
+// ...
+await downloadLaunchData();
+log.info(`Downloaded data for ${launches.size} SpaceX launches.`);
+
+export function getAll(){
+  return Array.from(launches.values());
+}
+
+export function getOne(id : number){
+  if (launches.has(id)){
+    return launches.get(id);
+  }
+  return null;
+}
+```
+`?` means optional in the interface definition
+
+Create endpoints on the backend, `api.ts`:
+```ts
+router.get("/launches", (ctx) => {
+    ctx.response.body = launches.getAll();
+});
+
+router.get("/launches/:id", (ctx) => {
+    if (ctx.params?.id){
+      const launchesList = launches.getOne(Number(ctx.params.id));
+      if (launchesList) {
+        ctx.response.body = launchesList;
+      } else {
+        ctx.throw(400, "Launch with that ID doesn's exist");
+      }
+    }
+});
+```
+One with id parameter.
+Optional chaining operator `if (ctx.params?.id)` is the same as `if (ctx.params && ctx.params.id)`
+
+Implement on the frontend, `script.js`:
+```js
+function loadLaunches() {
+  return fetch("/launches")
+    .then((launchesResponse) => launchesResponse.json())
+    .then((fetchedLaunches) => {
+      launches = fetchedLaunches.sort((a, b) => {
+        return a.flightNumber < b.flightNumber;
+      });
+    });
+}
+```
+
+```sh
+deno run --allow-net --allow-read mod.ts
+```
+
+Postman:
+```
+localhost:8000/launches/10
+# exists
+
+localhost:8000/launches/1000
+# does not exist, error message is returned
+```
 
 ### S8/L92 POST /launches
 
+**launches.ts**  
+**api.ts**  
+**public/javascript/script.js**  
+
+`api.ts`:
+```ts
+router.post("/launches", async (ctx) => {
+  const body = await ctx.request.body();
+
+  launches.addOne(body.value);
+
+  ctx.response.body = { success: true };
+  ctx.response.status = 201;
+});
+```
+
+- no body parser needed like in node
+
+`launches.ts`:
+```ts
+export function addOne(data : Launch){
+  launches.set(data.flightNumber, Object.assign(data, {
+    upcoming: true,
+    customers: ["Zero to Mastery", "NASA"],
+  }));
+}
+```
+
+Postman:
+```
+POST localhost:8000/launches
+// Body/Raw/JSON:
+{
+  "launchDate": 1591488000,
+  "flightNumber": 1,
+  "mission": "ZTM123",
+  "rocket": "ZTM Experimental IS1",
+  "target": "Kepler-407 b"
+}
+// Header is set automatically
+// Content-Type: application/json
+```
+
+Now works with Postman.
+
+`script.js`:
+```ts
+return fetch("/launches", {
+  method: "post",
+  headers: {
+    "Content-Type" : "application/json"
+  },
+  body: JSON.stringify({
+    launchDate: Math.floor(launchDate / 1000),
+    flightNumber,
+    mission,
+    rocket,
+    target
+  })
+})
+.then(() => {
+  document.getElementById("launch-success").hidden = false;
+})
+.then(loadLaunches) ;
+```
+
+- Oak parses the body correctly due to Header settings
+
+Browser:
+```
+localhost:8000/index.html
+// set a New Mission
+// list Upcoming
+  // the new mission is listed
+```
+
 ### S8/L93 DELETE /launches
+
+**launches.ts**  
+**api.ts**  
+**public/javascript/script.js**  
+
+Create an endpoint, `api.ts`:
+```ts
+router.delete("/launches/:id", (ctx) => {
+  if (ctx.params?.id){
+      const result = launches.removeOne(Number(ctx.params.id));
+      ctx.response.body = { success : result };
+  }
+});
+```
+
+Mark the record deleted in the backend, `launches.ts`:
+```ts
+export function removeOne(id : number){
+  const aborted = launches.get(id);
+  if (aborted) {
+    aborted.upcoming = false;
+    aborted.success = false;
+  }
+  return aborted;
+}
+```
+
+Postman:
+```
+http://localhost:8000/launches/106
+// the JSON of the deleted launch is returned
+```
+
+Update the frontend, `script.js`:
+```js
+function abortLaunch(id){
+  return fetch(`/launches/${id}`, {
+    method: "delete",
+  })
+  .then(loadLaunches)
+  .then(listUpcoming);
+}
+```
+
+The red X button on the frontend now deletes the entry from the backend.
 
 ### S8/L94 Adding Some Polish
 
+*videos/space.mp4*
+**md.ts**
+**index.html**
+**style.css**
+
+https://www.pexels.com/video/the-sun-illuminating-earth-s-surface-1851190/
+
+Download the video from the URL.
+
+`mod.ts`:
+```ts
+app.use(async (ctx) => {
+  const filePath = ctx.request.url.pathname;
+  const fileWhitelist = [
+    // ...
+    "/videos/space.mp4",
+  ];
+  //...
+});
+```
+
+`index.html`:
+```html
+<!-- ... -->
+</footer>
+
+  <video autoplay muted loop id="spacevideo">
+    <source src="videos/space.mp4" type="video/mp4">
+  </video>
+
+</body>
+```
+
+`style.css`:
+```css
+#spacevideo {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  min-width: 100%;
+  min-height: 100%;
+  width: 100%;
+  z-index: -1;
+  opacity: .45;
+}
+```
+
 ### S8/L95 Managing Dependencies
 
+**deps.ts**  
+**test_deps.ts**  
+
+- some dependencies have versioning
+- imports what don't include any version numbers are importing the latest available version from master branch from github
+- convention:
+  - `deps.ts`
+  - `test_deps.ts`
+  - `dev_deps.ts`
+- `export` vs `import`
+
+`deps.ts`:
+```ts
+// Standard library dependencies
+export * as log from "https://deno.land/std@0.56.0/log/mod.ts";
+export { join } from "https://deno.land/std@0.56.0/path/mod.ts";
+export { parse } from "https://deno.land/std@0.56.0/encoding/csv.ts";
+export { BufReader } from "https://deno.land/std@0.56.0/io/bufio.ts";
+
+// Third party dependencies
+export {
+  Application,
+  Router,
+  send,
+} from "https://deno.land/x/oak@v5.0.0/mod.ts";
+
+export {
+  pick,
+  flatMap,
+} from "https://deno.land/x/lodash@4.17.15-es/lodash.js";
+```
+
+`test_deps.ts`:
+```ts
+export {
+    assertEquals,
+    assertNotEquals
+} from "https://deno.land/std@0.56.0/testing/asserts.ts";
+```
+
+`mod.ts`:
+```ts
+import { log, Application, send } from "./deps.ts";
+```
+
 ### S8/L96 Managing Dependencies 2
+
+**lock.json**
+
+- the response to the version tag depends on the webserver
+- if the webserver was hacked
+  - deno can make sure that dependencies haven't been tampered with
+    - hash values are written into the file `--lock-write --lock=lock.json`
+    - hash values are checked when downloading again the listed dependencies `--lock=lock.json`
+    - deno only runs the code when the checs succeeds
+  - the value of the hash uniquely identifies the file
+
+```sh
+# lock dependencies
+deno run --allow-net --allow-read --lock-write --lock=lock.json mod.ts
+
+# check dependencies
+deno run --allow-net --allow-read --lock=lock.json mod.ts
+```
 
 ### S8/L97 Heads UP! Videos Uploaded by June 30th!
 
@@ -1333,9 +2305,14 @@ deno run --allow-net mod.ts
 
 ### S9/L99 LinkedIn Endorsements
 
+https://zerotomastery.io/community/?utm_source=udemy&utm_medium=coursecontent  
+https://www.linkedin.com/school/ztm-academy/  
+
 ### S9/L100 Become An Alumni
 
 ### S9/L101 Coding Challenges
+
+https://zerotomastery.io/community/?utm_source=udemy&utm_medium=coursecontent
 
 ## S10 Bonus: How JavaScript Works
 

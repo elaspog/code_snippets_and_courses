@@ -547,6 +547,8 @@ sls deploy -v
 
 ### S03/E24 Using the DynamoDB DocumentClient to Insert an Auction
 
+**src/handlers/createAuction.js**  
+
 https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/DynamoDB/DocumentClient.html
 
 ```sh
@@ -734,7 +736,7 @@ POST {{AUCTIONS_HOST}}/auction
 **resources/AuctionsTable.yml**  
 **iam/AuctionsTableIAM.yml**  
 **serverless.yml**  
-**createAuction.js**  
+**src/handlers/createAuction.js**  
 
 - Avoid hardcoding table names
   - Hard to manage across environments
@@ -847,15 +849,577 @@ https://www.npmjs.com/package/serverless-offline
 
 ### S04/E29 Introduction to Middy and Middleware
 
+**serverless.yml**  
+**src/handlers/createAuction.js**  
+
+https://github.com/middyjs/middy
+
+- Middleware - runs before or after lambda handler
+  - **Middy** - middleware library
+
+```sh
+npm install @middy/core @middy/http-event-normalizer @middy/http-error-handler @middy/http-json-body-parser
+npm install http-errors
+```
+
+- `http-json-body-parser`
+  - automatically parses the stringified event body
+  - results cleaner code
+- `http-event-normalizer`
+  - automatically adjust the API gateway event object to prevent accidentally having non-existing objects when trying to access path or query parameters
+  - reduces the room for errors and the number of if statements
+- `http-error-handler`
+  - helps having smoother, easier and cleaner error handling process
+
+`createAuction.js`:
+```js
+// ...
+import middy from '@middy/core';
+import httpJsonBodyParser from '@middy/http-json-body-parser';
+import httpEventNormalizer from '@middy/http-event-normalizer';
+import httpErrorHandler from '@middy/http-error-handler';
+import createError from 'http-errors';
+// ...
+async function createAuction(event, context){
+  const { title } = event.body;
+  // ...
+  try {
+    await dynamodb.put({
+      TableName: process.env.AUCTIONS_TABLE_NAME,
+      Item: auction,
+    }).promise();
+  } catch (error) {
+    console.error(error);
+    throw new createError.InternalServerError(error);
+  }
+  // ...
+}
+// ...
+export const handler = middy(createAuction)
+  .use(httpJsonBodyParser())
+  .use(httpEventNormalizer())
+  .use(httpErrorHandler());
+```
+
+- `@middy/http-json-body-parser`
+  - no JSON parsing needed
+  - `const { title } = event.body;` instead of `const { title } = JSON.parse(event.body);`
+- `@middy/http-event-normalizer`
+  - prevents accessing non existing path or query parameters from the request
+  - reduces the room for errors and if statements
+- `@middy/http-error-handler`
+  - makes error handling process clean
+  - works with `http-errors` package
+- `http-errors`
+  - allows to create HTTP error in a declarative way
+
+```sh
+sls deploy -f createAuction -v
+```
+
+Postman:
+```sh
+# Body / raw / json:
+{
+    "title": "Gold plated soda cans"
+}
+
+POST {{AUCTIONS_HOST}}/auction
+# works
+```
+
 ### S04/E30 CRUD Operation: Get Auctions
+
+**serverless.yml**  
+**iam/AuctionsTableIAM.yml**  
+**src/handlers/getAuctions.js**  
+
+https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/DynamoDB/DocumentClient.html#query-property
+
+Getting all auctions (scan):
+
+`serverless.yml`:
+```yaml
+# ...
+functions:
+  createAuction:
+    # ...
+  getAuctions:
+    handler: src/handlers/getAuctions.handler
+    events:
+      - http:
+          method: GET
+          path: /auctions
+# ...
+```
+
+- DynamoDB scan operation
+
+`getAuctions.js`:
+```js
+import AWS from 'aws-sdk';
+import middy from '@middy/core';
+import httpJsonBodyParser from '@middy/http-json-body-parser';
+import httpEventNormalizer from '@middy/http-event-normalizer';
+import httpErrorHandler from '@middy/http-error-handler';
+import createError from 'http-errors';
+
+const dynamodb = new AWS.DynamoDB.DocumentClient();
+
+async function getAuctions(event, context){
+  let auctions;
+
+  try {
+    const result = await dynamodb.scan({
+      TableName: process.env.AUCTIONS_TABLE_NAME
+    }).promise();
+    auctions = result.Items;
+  } catch (error) {
+    console.error(error);
+    throw new createError.InternalServerError(error);
+  }
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify(auctions),
+  };
+}
+
+export const handler = middy(getAuctions)
+  .use(httpJsonBodyParser())
+  .use(httpEventNormalizer())
+  .use(httpErrorHandler());
+```
+
+- Allow scan action
+
+`iam/AuctionsTableIAM.yml`:
+```yaml
+AuctionsTableIAM:
+  Effect: Allow
+  Action:
+    - dynamodb:PutItem
+    - dynamodb:Scan
+  Resource:
+    - ${self:custom.AuctionsTable.arn}
+```
+
+-
+
+```sh
+sls deploy -v
+```
+
+Postman:
+```sh
+GET {{AUCTIONS_HOST}}/auctions
+# returned auction
+```
 
 ### S04/E31 CRUD Operation: Get Auction by ID
 
+**serverless.yml**  
+**iam/AuctionsTableIAM.yml**  
+**src/handlers/getAuction.js**  
+
+https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/DynamoDB/DocumentClient.html#get-property
+
+Getting an auction by ID (query):
+
+`serverless.yml`:
+```yaml
+# ...
+functions:
+  createAuction:
+    # ...
+  getAuctions:
+    # ...
+  getAuction:
+    handler: src/handlers/getAuction.handler
+    events:
+      - http:
+          method: GET
+          path: /auction/{id}
+# ...
+```
+
+`getAuction.js`:
+```js
+import AWS from 'aws-sdk';
+import middy from '@middy/core';
+import httpJsonBodyParser from '@middy/http-json-body-parser';
+import httpEventNormalizer from '@middy/http-event-normalizer';
+import httpErrorHandler from '@middy/http-error-handler';
+import createError from 'http-errors';
+
+const dynamodb = new AWS.DynamoDB.DocumentClient();
+
+async function getAuction(event, context){
+  let auction;
+  const { id } = event.pathParameters;
+
+  try {
+    const result = await dynamodb.get({
+      TableName: process.env.AUCTIONS_TABLE_NAME,
+      Key: { id },
+    }).promise();
+    auction = result.Item;
+  } catch (error) {
+    console.error(error);
+    throw new createError.InternalServerError(error);
+  }
+
+  if (!auction) {
+    throw new createError.NotFound(`Auction with ID "${id}" not found!`);
+  }
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify(auction),
+  };
+}
+
+export const handler = middy(getAuction)
+  .use(httpJsonBodyParser())
+  .use(httpEventNormalizer())
+  .use(httpErrorHandler());
+```
+
+`iam/AuctionsTableIAM.yml`:
+```yaml
+AuctionsTableIAM:
+  Effect: Allow
+  Action:
+    - dynamodb:PutItem
+    - dynamodb:Scan
+    - dynamodb:GetItem
+  Resource:
+    - ${self:custom.AuctionsTable.arn}
+```
+
+```sh
+sls deploy -v
+```
+
+Postman:
+```sh
+# get an id from DynamoDB
+GET {{AUCTIONS_HOST}}/auction/<id>
+# the item with the ID if exists or error message
+```
+
 ### S04/E32 Creating a Common Middleware
+
+**src/lib/commonMiddleware.js**  
+**src/handlers/createAuction.js**  
+**src/handlers/getAuctions.js**  
+**src/handlers/getAuction.js**  
+
+`src/lib/commonMiddleware.js`:
+```js
+import middy from '@middy/core';
+import httpJsonBodyParser from '@middy/http-json-body-parser';
+import httpEventNormalizer from '@middy/http-event-normalizer';
+import httpErrorHandler from '@middy/http-error-handler';
+import createError from 'http-errors';
+
+export default handler => middy(handler)
+  .use([
+    httpJsonBodyParser(),
+    httpEventNormalizer(),
+    httpErrorHandler()
+  ]);
+```
+
+`createAuction.js`:
+```js
+import commonMiddleware from '../lib/commonMiddleware'
+// ...
+export const handler = commonMiddleware(createAuction);
+```
+
+`getAuction.js`:
+```js
+import commonMiddleware from '../lib/commonMiddleware'
+// ...
+export const handler = commonMiddleware(getAuction);
+```
+
+`getAuctions.js`:
+```js
+import commonMiddleware from '../lib/commonMiddleware'
+// ...
+export const handler = commonMiddleware(getAuctions);
+```
+
+```sh
+sls deploy -v
+```
+
+- Serverless framework knows that nothing has changed in the infrastructure
+  - reuploads only the handler functions not the infrastructure
+
+Postman:
+```sh
+POST {{AUCTIONS_HOST}}/auction
+# works
+
+GET {{AUCTIONS_HOST}}/auctions
+# works
+
+GET {{AUCTIONS_HOST}}/auction/<id>
+# works
+```
 
 ### S04/E33 CRUD Operation: Placing a Bid
 
+**src/lib/commonMiddleware.js**  
+**src/handlers/createAuction.js**  
+**src/handlers/getAuctions.js**  
+**src/handlers/getAuction.js**  
+**src/handlers/placeBid.js**  
+
+https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/DynamoDB/DocumentClient.html#update-property
+
+`createAuction.js`:
+```js
+// ...
+  const auction = {
+    // ...
+    highestBid: {
+      amount: 0,
+    },
+  };
+// ...
+```
+
+`serverless.yml`:
+```yaml
+# ...
+functions:
+  createAuction:
+    # ...
+  getAuctions:
+    # ...
+  getAuction:
+    # ...
+  placeBid:
+    handler: src/handlers/placeBid.handler
+    events:
+      - http:
+          method: PATCH
+          path: /auction/{id}/bid
+# ...
+```
+
+`handlers/placeBid.js`:
+```js
+import AWS from 'aws-sdk';
+import commonMiddleware from '../lib/commonMiddleware'
+import createError from 'http-errors';
+
+const dynamodb = new AWS.DynamoDB.DocumentClient();
+
+async function placeBid(event, context){
+  const { id } = event.pathParameters;
+  const { amount } = event.body;
+
+  const params = {
+    TableName: process.env.AUCTIONS_TABLE_NAME,
+    Key: { id },
+    UpdateExpression: 'set highestBid.amount = :amount',
+    ExpressionAttributeValues: {
+      ':amount': amount,
+    },
+    ReturnValues: 'ALL_NEW',
+  };
+
+  let updatedAuction;
+
+  try {
+    const result = await dynamodb.update(params).promise();
+    updatedAuction = result.Attributes;
+  } catch (error) {
+    console.error(error);
+    throw new createError.InternalServerError(error);
+  }
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify(updatedAuction),
+  };
+}
+
+export const handler = commonMiddleware(placeBid);
+```
+
+- DynamoDB has expression language
+
+`iam/AuctionsTableIAM.yml`:
+```yaml
+AuctionsTableIAM:
+  Effect: Allow
+  Action:
+    - dynamodb:PutItem
+    - dynamodb:Scan
+    - dynamodb:GetItem
+    - dynamodb:UpdateItem
+  Resource:
+    - ${self:custom.AuctionsTable.arn}
+```
+
+```sh
+sls deploy -v
+```
+
+Delete the old auctions from DynamoDB on AWS Console
+
+Postman:
+```sh
+# body: raw/json
+{
+  "amount": 40
+}
+PATCH {{AUCTIONS_HOST}}/auction/<id>/bid
+# bid has been updated
+```
+
+**Note:** for unknown reason the returned message for placing a bid was:
+```json
+{
+  "message": "Missing Authentication Token"
+}
+```
+
 ### S04/E34 Validation: Placing a Bid
+
+**src/handlers/getAuction.js**  
+**src/handlers/placeBid.js**  
+
+`getAuction.js`:
+```js
+import AWS from 'aws-sdk';
+import commonMiddleware from '../lib/commonMiddleware'
+import createError from 'http-errors';
+
+const dynamodb = new AWS.DynamoDB.DocumentClient();
+
+export async function getAuctionById(id) {
+  let auction;
+
+  try {
+    const result = await dynamodb.get({
+      TableName: process.env.AUCTIONS_TABLE_NAME,
+      Key: { id },
+    }).promise();
+    auction = result.Item;
+  } catch (error) {
+    console.error(error);
+    throw new createError.InternalServerError(error);
+  }
+
+  if (!auction) {
+    throw new createError.NotFound(`Auction with ID "${id}" not found!`);
+  }
+
+  return auction;
+}
+
+async function getAuction(event, context){
+  const { id } = event.pathParameters;
+  const auction = await getAuctionById(id);
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify(auction),
+  };
+}
+
+export const handler = commonMiddleware(getAuction);
+```
+
+`handlers/placeBid.js`:
+```js
+import AWS from 'aws-sdk';
+import commonMiddleware from '../lib/commonMiddleware'
+import createError from 'http-errors';
+import { getAuctionById } from './getAuction';
+
+const dynamodb = new AWS.DynamoDB.DocumentClient();
+
+async function placeBid(event, context){
+  const { id } = event.pathParameters;
+  const { amount } = event.body;
+
+  const auction = await getAuctionById(id);
+
+  if (amount <= auction.highestBid.amount) {
+    throw new createError.Forbidden(`Your bib must be higher than ${auction.highestBid.amount}!`);
+  }
+
+  const params = {
+    TableName: process.env.AUCTIONS_TABLE_NAME,
+    Key: { id },
+    UpdateExpression: 'set highestBid.amount = :amount',
+    ExpressionAttributeValues: {
+      ':amount': amount,
+    },
+    ReturnValues: 'ALL_NEW',
+  };
+
+  let updatedAuction;
+
+  try {
+    const result = await dynamodb.update(params).promise();
+    updatedAuction = result.Attributes;
+  } catch (error) {
+    console.error(error);
+    throw new createError.InternalServerError(error);
+  }
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify(updatedAuction),
+  };
+}
+
+export const handler = commonMiddleware(placeBid);
+```
+
+```sh
+sls deploy -f placeBid -v
+```
+
+Postman:
+```sh
+# body: raw/json
+{
+  "amount": 21
+}
+PATCH {{AUCTIONS_HOST}}/auction/<id>/bid
+# not working
+
+# body: raw/json
+{
+  "amount": 22
+}
+PATCH {{AUCTIONS_HOST}}/auction/<wrong_id>/bid
+# not working
+
+# body: raw/json
+{
+  "amount": 22
+}
+PATCH {{AUCTIONS_HOST}}/auction/<id>/bid
+# working
+```
+
+**Note:** for unknown reason the returned message for placing a bid was:
+```json
+{
+  "message": "Missing Authentication Token"
+}
+```
 
 ## S05 Auction Service: Part 3 (Processing Auctions)
 

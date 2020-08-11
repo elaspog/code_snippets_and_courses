@@ -259,9 +259,11 @@ https://zerotomastery.io/blog/?tag=WDM
 
 https://zerotomastery.io/blog/
 
+### S2/L20 Endorsements on LinedIN
+
 ## S3 Deno vs Node
 
-### S3/L20 Deno Game Changers
+### S3/L21 Deno Game Changers
 
 - First class TypeScript
   - Deno does not need any module to run TypeScript
@@ -305,7 +307,7 @@ https://zerotomastery.io/blog/
 - Standard Library
   - approved/developed/tested by the creators of deno
 
-### S3/L21 Deno Game Changers 2
+### S3/L22 Deno Game Changers 2
 
 - Built In Tooling
   - Professional setup for Node: e.g. `ts-node` to run TypeScript, `jest` as testing library, `prettier` to format code, `nodemon` to check file changes
@@ -326,9 +328,9 @@ https://zerotomastery.io/blog/
 - Opinionated Modules
   - Deno Manual / Style Guide
 
-### S3/L22 Will Deno Kill NodeJS?
+### S3/L23 Will Deno Kill NodeJS?
 
-### S3/L23 Single Executable To Rule Them All
+### S3/L24 Single Executable To Rule Them All
 
 https://github.com/denoland/deno/issues/986
 
@@ -338,7 +340,7 @@ https://github.com/denoland/deno/issues/986
   - the executable code is packed with the runtime
   - language like go has this feature `go build main.go`
 
-### S3/L24 Deno Security
+### S3/L25 Deno Security
 
 https://github.com/denoland/deno
 
@@ -350,7 +352,7 @@ https://github.com/denoland/deno
 - SandBox examples:
   - Virtual Machine, Docker Container, Browser sandbox, Mobile Apps
 
-### S3/L25 Deno Permissions
+### S3/L26 Deno Permissions
 
 ```
 # PowerShell
@@ -382,7 +384,7 @@ deno run --allow-all main.ts
 deno run -A main.ts
 ```
 
-### S3/L26 Deno Permissions 2
+### S3/L27 Deno Permissions 2
 
 - to the program from command line a shell script can be used to define the security parameters, but
   - different versions of the scripts (testing, running, caching the program) are needed
@@ -404,7 +406,7 @@ deno help example
 - install can be done with explicit naming, with `-n/--name`
 - otherwise parent path is used
 
-### S3/L27 Deno Permissions 3
+### S3/L28 Deno Permissions 3
 
 https://github.com/srackham/drake
 
@@ -444,7 +446,7 @@ deno run -A Drakefile.ts hello
 
 ## S4 Deno Modules And Tooling
 
-### S45/L28 How Modules Work In Deno
+### S45/L29 How Modules Work In Deno
 
 **deno.js**  
 **deno2.js**  
@@ -497,7 +499,7 @@ deno run deno3.js
 
 - in `import` statement the file extension is not assumed to be JS, the filetype has to be explicitly defined
 
-### S4/L29 URL Modules
+### S4/L30 URL Modules
 
 - Deno recommends the modules to be written in TypeScript
 
@@ -525,7 +527,7 @@ deno info 'deno3.js'
   - if opened from web browser a HTML page is rendered around the file
   - if referenced from deno package the content of the file is downloaded
 
-### S4/L30 Standard Library
+### S4/L31 Standard Library
 
 - First version of the Deno was written in Go language
   - many concepts originate from Go language
@@ -534,7 +536,7 @@ deno info 'deno3.js'
   - no need to reinvent the wheel again
   - is and will be actively maintained by Deno team
 
-### S4/L31 3rd Party Modules
+### S4/L32 3rd Party Modules
 
 - deno doesn't understand CommonJS pattern
 - Deno requires file extension
@@ -542,7 +544,7 @@ deno info 'deno3.js'
 - NPM packages wouldn't work with Deno
   - unless the imports are not rewritten by module developers
 
-### S4/L32 Deno Caching
+### S4/L33 Deno Caching
 
 - Deno caches the downloaded files, e.g.: https://deno.land/std/examples/welcome.ts
   - no need to download the file again
@@ -559,7 +561,7 @@ deno run deno3.js
 deno run --reload deno3.js
 ```
 
-### S4/L33 Deno Caching 2
+### S4/L34 Deno Caching 2
 
 - if the server storing the dependencies goes down:
   - node downloads packages into `node_modules` folder
@@ -615,7 +617,7 @@ ls
 # deno_dir
 ```
 
-### S4/L34 NPM for Deno
+### S4/L35 NPM for Deno
 
 - third party packages: https://deno.land/x
 - https://pika.dev/cdn
@@ -623,7 +625,7 @@ ls
   - automatically converts npm modules to work with ES6 imports
   - even Deno can load NPM packages
 
-### S4/L35 Managing Module Versions
+### S4/L36 Managing Module Versions
 
 ```js
 import { Application } from "https://deno.land/x/abc@v1.0.0-rc10/mod.ts";
@@ -639,7 +641,7 @@ import { Application } from "https://deno.land/x/oak@v3.7.0/mod.ts"
 
 - if `@version_number` is not specified in the name of the file, deno downloads the latest version
 
-### S4/L36 Where the Bleep is package.json?
+### S4/L37 Where the Bleep is package.json?
 
 - `microsoft/TypeScript-Node-Starter`
   - TypeScript compiler and JavaScript runtume
@@ -663,14 +665,14 @@ npm install
     - all projects can reuse the cache directory
     - no need to download again for each project
 
-### S4/L37 Deps.ts
+### S4/L38 Deps.ts
 
 - dependencies are handled by a single file: `deps.ts `
   - no need to change every single URL in each file what uses the dependency
 - there is a way to lock the version of pacakages and dependencie like `package-lock.json` does
   - to not to break the code if a package is updated
 
-### S4/L38 Locking Dependencies
+### S4/L39 Locking Dependencies
 
 https://github.com/odziem/nasa-deno
 
@@ -682,14 +684,14 @@ https://github.com/odziem/nasa-deno
 deno cache --lock=lock.json --lock-write src/deps.ts
 ```
 
-### S4/L39 Deno Upgrade
+### S4/L40 Deno Upgrade
 
 ```
 deno -V
 deno upgrade
 ```
 
-### S4/L40 Reviewing Deno Modules
+### S4/L41 Reviewing Deno Modules
 
 - `deps.ts`
 - `mod.ts`
@@ -700,7 +702,7 @@ deno upgrade
 - lockfiles
 - alternative for npm scripts
 
-### S4/L41 Deno Tooling
+### S4/L42 Deno Tooling
 
 - there is very good tooling around JavaScript
 - deno offers:
@@ -732,7 +734,7 @@ deno run deno.bundle.js
 
 - bundle command = functionality what `webpack` provides
 
-### S4/L42 Deno Tooling 2
+### S4/L43 Deno Tooling 2
 
 ```sh
 deno info 'https://deno.land/std/examples/welcome.ts'
@@ -754,15 +756,15 @@ deno fmt deno3.js deno2.js
 
 ## S5 TypeScript?
 
-### S5/L43 Recommended Path: TypeScript
+### S5/L44 Recommended Path: TypeScript
 
 ## S6 Deno File I/O - Planets Project
 
-### S6/L44 Code Along
+### S6/L45 Code Along
 
 https://github.com/odziem/planet-csv-deno
 
-### S6/L45 Reading Files With Deno
+### S6/L46 Reading Files With Deno
 
 **heeelo.txt**  
 **mod.ts**  
@@ -786,7 +788,7 @@ await readFile();
 deno run --allow-read mod.ts
 ```
 
-### S6/L46 Async vs Sync File I/O
+### S6/L47 Async vs Sync File I/O
 
 https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/async_function
 
@@ -797,7 +799,7 @@ https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/asy
 - Top level `async`/`await`
   - no need to wrap `await readFile();` inside a function or promise
 
-### S6/L47 Exercise: Async vs Sync File IO
+### S6/L48 Exercise: Async vs Sync File IO
 
 https://doc.deno.land/https/github.com/denoland/deno/releases/latest/download/lib.deno.d.ts
 
@@ -819,7 +821,7 @@ https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/for
 deno run --allow-read main.ts
 ```
 
-### S6/L48 Importing The Path Module
+### S6/L49 Importing The Path Module
 
 **text_files/heeelo.txt**  
 **mod.ts**  
@@ -843,13 +845,13 @@ await readFile();
 deno run --allow-read mod.ts
 ```
 
-### S6/L49 Downloading Our Planets Data
+### S6/L50 Downloading Our Planets Data
 
 https://exoplanetarchive.ipac.caltech.edu/docs/data.html
 
 - NASA Exoplanet Archive
 
-### S6/L50 Reading Our CSV Data
+### S6/L51 Reading Our CSV Data
 
 *kepler_exoplanets_nasa.csv* (needs to be downloaded, file too big)  
 **mod.ts**  
@@ -882,7 +884,7 @@ await loadPlanetsData();
 deno run --allow-read mod.ts
 ```
 
-### S6/L51 Exercise: Resource Leaks
+### S6/L52 Exercise: Resource Leaks
 
 If the file is not closed:
 
@@ -913,7 +915,7 @@ Abort trap: 6
 
 The operating system has reached a maximum amount of open files and won't let us open anymore.
 
-### S6/L52 Finding Habitable Planets
+### S6/L53 Finding Habitable Planets
 
 *kepler_exoplanets_nasa.csv* (needs to be downloaded, file too big)  
 **mod.ts**  
@@ -963,7 +965,7 @@ console.log(`${newEarths.length} habitable planets found!`);
 deno run --allow-read mod.ts
 ```
 
-### S6/L53 Exploring Planets With 3rd Party Modules
+### S6/L54 Exploring Planets With 3rd Party Modules
 
 *kepler_exoplanets_nasa.csv* (needs to be downloaded, file too big)  
 **mod.ts**  
@@ -996,26 +998,26 @@ for (const planet of newEarths) {
 // ...
 ```
 
-### S6/L54 Exercise: Exploring Earth-like Planets
+### S6/L55 Exercise: Exploring Earth-like Planets
 
 https://github.com/odziem/planet-csv-deno
 
 ## S7 Exercise: SpaceX Launch Data
 
-### S7/L55 Code Along
+### S7/L56 Code Along
 
 https://github.com/odziem/fetch-deno
 
-### S7/L56 Recommended Path: APIs
+### S7/L57 Recommended Path: APIs
 
 - API for HTTP, AJAX, JSON: `fetch()`
 
-### S7/L57 fetch()
+### S7/L58 fetch()
 
 https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch  
 https://github.com/r-spacex/SpaceX-API  
 
-### S7/L58 Fetching SpaceX Launch Data
+### S7/L59 Fetching SpaceX Launch Data
 
 **mod.ts**
 
@@ -1037,7 +1039,7 @@ await downloadLaunchData();
 deno run --allow-net=api.spacexdata.com mod.ts
 ```
 
-### S7/L59 Exercise: Making a POST Request
+### S7/L60 Exercise: Making a POST Request
 
 **mod.ts**
 
@@ -1074,7 +1076,7 @@ console.log(body);
 deno run --allow-net mod.ts
 ```
 
-### S7/L60 Logging
+### S7/L61 Logging
 
 **mod.ts**
 
@@ -1126,13 +1128,13 @@ async function downloadLaunchData(){
 await downloadLaunchData();
 ```
 
-### S7/L61 --reload Cache For Troubleshooting
+### S7/L62 --reload Cache For Troubleshooting
 
 ```sh
 deno run --allow-net=api.spacexdata.com mod.ts
 ```
 
-### S7/L62 Exploring SpaceX Launch Data
+### S7/L63 Exploring SpaceX Launch Data
 
 **mod.ts**
 
@@ -1168,7 +1170,7 @@ async function downloadLaunchData(){
 }
 ```
 
-### S7/L63 Postman and Insomnia
+### S7/L64 Postman and Insomnia
 
 https://www.postman.com/  
 https://insomnia.rest/  
@@ -1184,9 +1186,9 @@ https://insomnia.rest/
 - Insomnia - helps design and debug APIs
   - competitor of Postman
 
-### S7/L64 Quick Note: Rainbow Editor
+### S7/L65 Quick Note: Rainbow Editor
 
-### S7/L65 SpaceX Customers Data
+### S7/L66 SpaceX Customers Data
 
 **mod.ts**
 
@@ -1222,7 +1224,7 @@ async function downloadLaunchData(){
 await downloadLaunchData();
 ```
 
-### S7/L66 import.meta
+### S7/L67 import.meta
 
 **mod.ts**
 
@@ -1250,7 +1252,7 @@ if (import.meta.main) {
 }
 ```
 
-### S7/L67 Exercise: import.meta
+### S7/L68 Exercise: import.meta
 
 https://github.com/odziem/github-fetcher-exercise
 
@@ -1267,7 +1269,7 @@ deno run --allow-net mod.ts
 
 ## S8 NASA Project: Deno For Backend Development
 
-### S8/L68 Introduction To Backend
+### S8/L69 Introduction To Backend
 
 - Backend models:
   - a process per user request
@@ -1277,7 +1279,7 @@ deno run --allow-net mod.ts
     - works well when the main performance problem is I/O
     - e.g.: Node, Deno
 
-### S8/L69 Deno Backend Frameworks And Libraries
+### S8/L70 Deno Backend Frameworks And Libraries
 
 https://oakserver.github.io/oak/  
 https://drash.land/  
@@ -1307,11 +1309,21 @@ https://servestjs.org/
   - oak
     - similar to express, nearly identical to koa
 
-### S8/L70 Code Along
+### S8/L71 Code Along
 
 https://github.com/odziem/nasa-deno
 
-### S8/L71 Oak
+### S8/L72 Quick Note: Deno Versions
+
+```ts
+import { Application } from "https://deno.land/x/oak@v6.0.1/mod.ts";
+```
+
+```ts
+import { join } from "https://deno.land/std@0.61.0/path/mod.ts";
+```
+
+### S8/L73 Oak
 
 **mod.ts**
 
@@ -1351,7 +1363,7 @@ if (import.meta.main) {
 deno run --allow-net mod.ts
 ```
 
-### S8/L72 What Is Middleware?
+### S8/L74 What Is Middleware?
 
 - Middleware
   - special function
@@ -1383,7 +1395,7 @@ app.use(async (ctx, next) => {
 });
 ```
 
-### S8/L73 Working With Middleware
+### S8/L75 Working With Middleware
 
 **mod.ts**
 
@@ -1415,7 +1427,7 @@ localhost:8000
 - middleware is measuring only the time what took for the body to be set
 - Postman is measuring entire roundtrip time between request and response
 
-### S8/L74 Reviewing Our Front End Code
+### S8/L76 Reviewing Our Front End Code
 
 **front-end-project/index.html**
 **front-end-project/images/favicon.png**
@@ -1433,7 +1445,7 @@ https://adventofcode.com/2019/day/1
 const target = launch.target ?? "";
 ```
 
-### S8/L75 Exercise: Reviewing Our Front End Code
+### S8/L77 Exercise: Reviewing Our Front End Code
 
 **script.js**
 
@@ -1472,7 +1484,7 @@ function submitLaunch() {
 }
 ```
 
-### S8/L76 Serving Static Files
+### S8/L78 Serving Static Files
 
 **public/** (**front-end-project** folder was renamed to this)  
 **mod.ts**  
@@ -1512,9 +1524,9 @@ localhost:8000
 
 - Can't serve the static files and ASCII art content without router
 
-### S8/L77 Exercise: Fixing A Security Issue
+### S8/L79 Exercise: Fixing A Security Issue
 
-### S8/L78 Fixing Our Security Vulnerability
+### S8/L80 Fixing Our Security Vulnerability
 
 **mod.ts**
 
@@ -1536,7 +1548,7 @@ app.use(async (ctx) => {
 });
 ```
 
-### S8/L79 Oak Router
+### S8/L81 Oak Router
 
 **api.ts**  
 **mod.ts**  
@@ -1581,7 +1593,7 @@ localhost:8000
 
 - Oak takes care automatically of sending 404 error if no file path matches
 
-### S8/L80 Method Not Allowed and OPTIONS
+### S8/L82 Method Not Allowed and OPTIONS
 
 **mod.ts**
 
@@ -1606,7 +1618,7 @@ app.use(router.allowMethods());
   - returns the same as `GET`, but does not give back content, just the header
   - useful when downloading the file and the file size is interesting
 
-### S8/L81 /planets
+### S8/L83 /planets
 
 *data/kepler_exoplanets_nasa.csv* (needs to be downloaded, file too big)  
 **models/planets.ts**  
@@ -1636,11 +1648,11 @@ type Planet = Record<string, string>;
 deno run --allow-read --allow-net mod.ts
 ```
 
-### S8/L82 Exercise: Populating The Dropdown Menu
+### S8/L84 Exercise: Populating The Dropdown Menu
 
 https://en.wikipedia.org/wiki/List_of_common_astronomy_symbols
 
-### S8/L83 Planets Data To The Frontend
+### S8/L85 Planets Data To The Frontend
 
 **public/index.html**  
 **public/javascripts/script.js**  
@@ -1668,7 +1680,7 @@ function loadPlanets() {
 }
 ```
 
-### S8/L84 Testing With Deno
+### S8/L86 Testing With Deno
 
 **planets.test.ts**
 
@@ -1694,7 +1706,7 @@ deno test
 Deno.test();
 ```
 
-### S8/L85 Testing With Deno 2
+### S8/L87 Testing With Deno 2
 
 **planets.test.ts**  
 
@@ -1779,7 +1791,7 @@ deno test --failfast
 deno test --filter leak
 ```
 
-### S8/L86 Testing With Deno 3
+### S8/L88 Testing With Deno 3
 
 ```sh
 deno run --allow-read models/planets.ts
@@ -1830,9 +1842,9 @@ Deno.test("filter only habitable planets", () => {
 deno test --allow-read  
 ```
 
-### S8/L87 Quick Note: Replace in Files
+### S8/L89 Quick Note: Replace in Files
 
-### S8/L88 Logging In Our API
+### S8/L90 Logging In Our API
 
 **mod.ts**  
 **planets.ts**  
@@ -1866,7 +1878,7 @@ import * as log from "https://deno.land/std/log/mod.ts";
 log.info(`${planets.length} habitable planets found!`);
 ```
 
-### S8/L89 Error Handling
+### S8/L91 Error Handling
 
 Option 1:
 ```ts
@@ -1930,7 +1942,7 @@ localhost:8000/planets
 
 This code was not producing the same output as in the lecture for Error object.
 
-### S8/L90 JavaScript Maps
+### S8/L92 JavaScript Maps
 
 Object:
 ```js
@@ -1965,7 +1977,7 @@ Array.from(capitalCities.values());
 // => [ "Tokyo", "New Delhi” ]
 ```
 
-### S8/L91 /launches
+### S8/L93 /launches
 
 **launches.ts**  
 **api.ts**  
@@ -2056,7 +2068,7 @@ localhost:8000/launches/1000
 # does not exist, error message is returned
 ```
 
-### S8/L92 POST /launches
+### S8/L94 POST /launches
 
 **launches.ts**  
 **api.ts**  
@@ -2134,7 +2146,7 @@ localhost:8000/index.html
   // the new mission is listed
 ```
 
-### S8/L93 DELETE /launches
+### S8/L95 DELETE /launches
 
 **launches.ts**  
 **api.ts**  
@@ -2181,7 +2193,74 @@ function abortLaunch(id){
 
 The red X button on the frontend now deletes the entry from the backend.
 
-### S8/L94 Adding Some Polish
+### S8/L96 Managing Dependencies
+
+**deps.ts**  
+**test_deps.ts**  
+
+- some dependencies have versioning
+- imports what don't include any version numbers are importing the latest available version from master branch from github
+- convention:
+  - `deps.ts`
+  - `test_deps.ts`
+  - `dev_deps.ts`
+- `export` vs `import`
+
+`deps.ts`:
+```ts
+// Standard library dependencies
+export * as log from "https://deno.land/std@0.56.0/log/mod.ts";
+export { join } from "https://deno.land/std@0.56.0/path/mod.ts";
+export { parse } from "https://deno.land/std@0.56.0/encoding/csv.ts";
+export { BufReader } from "https://deno.land/std@0.56.0/io/bufio.ts";
+
+// Third party dependencies
+export {
+  Application,
+  Router,
+  send,
+} from "https://deno.land/x/oak@v5.0.0/mod.ts";
+
+export {
+  pick,
+  flatMap,
+} from "https://deno.land/x/lodash@4.17.15-es/lodash.js";
+```
+
+`test_deps.ts`:
+```ts
+export {
+    assertEquals,
+    assertNotEquals
+} from "https://deno.land/std@0.56.0/testing/asserts.ts";
+```
+
+`mod.ts`:
+```ts
+import { log, Application, send } from "./deps.ts";
+```
+
+### S8/L97 Managing Dependencies 2
+
+**lock.json**
+
+- the response to the version tag depends on the webserver
+- if the webserver was hacked
+  - deno can make sure that dependencies haven't been tampered with
+    - hash values are written into the file `--lock-write --lock=lock.json`
+    - hash values are checked when downloading again the listed dependencies `--lock=lock.json`
+    - deno only runs the code when the checs succeeds
+  - the value of the hash uniquely identifies the file
+
+```sh
+# lock dependencies
+deno run --allow-net --allow-read --lock-write --lock=lock.json mod.ts
+
+# check dependencies
+deno run --allow-net --allow-read --lock=lock.json mod.ts
+```
+
+### S8/L98 Adding Some Polish
 
 *videos/space.mp4*
 **md.ts**
@@ -2230,97 +2309,66 @@ app.use(async (ctx) => {
 }
 ```
 
-### S8/L95 Managing Dependencies
+## S9 NASA Project: Deno Production and the Cloud (Docker + AWS)
 
-**deps.ts**  
-**test_deps.ts**  
+### S9/L99 Deploying Our Application To The Cloud
 
-- some dependencies have versioning
-- imports what don't include any version numbers are importing the latest available version from master branch from github
-- convention:
-  - `deps.ts`
-  - `test_deps.ts`
-  - `dev_deps.ts`
-- `export` vs `import`
+### S9/L100 Serverless vs Containers
 
-`deps.ts`:
-```ts
-// Standard library dependencies
-export * as log from "https://deno.land/std@0.56.0/log/mod.ts";
-export { join } from "https://deno.land/std@0.56.0/path/mod.ts";
-export { parse } from "https://deno.land/std@0.56.0/encoding/csv.ts";
-export { BufReader } from "https://deno.land/std@0.56.0/io/bufio.ts";
+### S9/L101 Virtual Machines
 
-// Third party dependencies
-export {
-  Application,
-  Router,
-  send,
-} from "https://deno.land/x/oak@v5.0.0/mod.ts";
+### S9/L102 What is a Container?
 
-export {
-  pick,
-  flatMap,
-} from "https://deno.land/x/lodash@4.17.15-es/lodash.js";
-```
+### S9/L103 Installing Docker
 
-`test_deps.ts`:
-```ts
-export {
-    assertEquals,
-    assertNotEquals
-} from "https://deno.land/std@0.56.0/testing/asserts.ts";
-```
+### S9/L104 Running Our First Docker Container
 
-`mod.ts`:
-```ts
-import { log, Application, send } from "./deps.ts";
-```
+### S9/L105 Creating a Dockerfile
 
-### S8/L96 Managing Dependencies 2
+### S9/L106 Your Docker Hub Account
 
-**lock.json**
+### S9/L107 Running Our NASA API in a Container
 
-- the response to the version tag depends on the webserver
-- if the webserver was hacked
-  - deno can make sure that dependencies haven't been tampered with
-    - hash values are written into the file `--lock-write --lock=lock.json`
-    - hash values are checked when downloading again the listed dependencies `--lock=lock.json`
-    - deno only runs the code when the checs succeeds
-  - the value of the hash uniquely identifies the file
+### S9/L108 Restarting Docker Containers
 
-```sh
-# lock dependencies
-deno run --allow-net --allow-read --lock-write --lock=lock.json mod.ts
+### S9/L109 Publishing Our Docker Image
 
-# check dependencies
-deno run --allow-net --allow-read --lock=lock.json mod.ts
-```
+### S9/L110 Exploring Amazon Web Services
 
-### S8/L97 Heads UP! Videos Uploaded by June 30th!
+### S9/L111 Creating an EC2 Instance 1
 
-## S9 Where To Go From Here?
+### S9/L112 Creating an EC2 Instance 2: Security
 
-### S9/L98 Learning Guideline
+### S9/L113 What is SSH?
 
-### S9/L99 LinkedIn Endorsements
+### S9/L114 Connecting To Our EC2 Instance With SSH
+
+### S9/L115 Setting Up Our EC2 Server
+
+### S9/L116 Deploying Our NASA API
+
+## S10 Where To Go From Here?
+
+### S10/L117 Learning Guideline
+
+### S10/L118 LinkedIn Endorsements
 
 https://zerotomastery.io/community/?utm_source=udemy&utm_medium=coursecontent  
 https://www.linkedin.com/school/ztm-academy/  
 
-### S9/L100 Become An Alumni
+### S10/L119 Become An Alumni
 
-### S9/L101 Coding Challenges
+### S10/L120 Coding Challenges
 
 https://zerotomastery.io/community/?utm_source=udemy&utm_medium=coursecontent
 
-## S10 Bonus: How JavaScript Works
+## S11 Bonus: How JavaScript Works
 
-### S10/L102 Quick Note: Upcoming Videos
+### S11/L121 Quick Note: Upcoming Videos
 
 JavaScript: The Advanced Concepts https://zerotomastery.io/promotions/
 
-### S10/L103 JavaScript Engine
+### S11/L122 JavaScript Engine
 
 https://en.wikipedia.org/wiki/List_of_ECMAScript_engines
 
@@ -2333,14 +2381,14 @@ https://en.wikipedia.org/wiki/List_of_ECMAScript_engines
 const isHappy = true;
 ```
 
-### S10/L104 Exercise: Javascript Engine
+### S11/L123 Exercise: Javascript Engine
 
 - Brendan Eich
   - created the language
   - working at Netscape - created the first commercially available JavaScript Engine
     - created SpiderMonkey what FireFox uses as it's JavaScript Engine
 
-### S10/L105 Inside the Engine
+### S11/L124 Inside the Engine
 
 https://astexplorer.net
 
@@ -2361,13 +2409,13 @@ function jsengine(code) {
 jsengine('var a = 5')
 ```
 
-### S10/L106 Exercise: JS Engine For All
+### S11/L125 Exercise: JS Engine For All
 
 - **ECMAScript**
   - standard for JavaScript
   - tells engine developers how JavaScript should work
 
-### S10/L107 Interpreters and Compilers
+### S11/L126 Interpreters and Compilers
 
 - there are two ways to run JavaScript:
   - Interpreter - translation happens line by line on thy fly
@@ -2376,7 +2424,7 @@ jsengine('var a = 5')
     - outputs Machine code
       - CPU can run the code
 
-### S10/L108 Inside the V8 Engine
+### S11/L127 Inside the V8 Engine
 
 - Interpreter
   - Pro: quick to get up and running, no compilation step requires time
@@ -2393,7 +2441,7 @@ jsengine('var a = 5')
   - Previous versions of V8 used two JIT compilers
   - If the compiler makes a mistake then deoptimization should happen which takes time to revert
 
-### S10/L109 Comparing Other Languages
+### S11/L128 Comparing Other Languages
 
 - C++
   - compiles (e.g.: to `.exe` file)
@@ -2408,7 +2456,7 @@ jsengine('var a = 5')
 - Python
   - can be interpreted and compiled
 
-### S10/L110 Writing Optimized Code
+### S11/L129 Writing Optimized Code
 
 https://richardartoul.github.io/jekyll/update/2015/04/26/hidden-classes.html  
 https://github.com/petkaantonov/bluebird/wiki/Optimization-killers#3-managing-arguments  
@@ -2424,7 +2472,7 @@ https://github.com/petkaantonov/bluebird/wiki/Optimization-killers#3-managing-ar
 
 - the more predictable the code is the better is
 
-### S10/L111 WebAssembly
+### S11/L130 WebAssembly
 
 - when JavaScript was created there was no standard binary executable format
   - compiling the code was not feasible (browser wars)
@@ -2432,7 +2480,7 @@ https://github.com/petkaantonov/bluebird/wiki/Optimization-killers#3-managing-ar
   - standard binary executable format
   - runs fast on the browser instead having to go through entire JavaScript engine process
 
-### S10/L112 Call Stack and Memory Heap
+### S11/L131 Call Stack and Memory Heap
 
 - **Memory Heap** - stores variables, objects, data
   - free store, large region in memory, where any type of arbitrary data can be stored in unordered fashion
@@ -2448,19 +2496,19 @@ https://github.com/petkaantonov/bluebird/wiki/Optimization-killers#3-managing-ar
   - variables are usually stored on the stack
   - objects, complex data structures, arrays, functions are usually stored on the memory heaps
 
-### S10/L113 Stack Overflow
+### S11/L132 Stack Overflow
 
 - occurs at recursion or lots of function nested inside each other
   - can easily exceed maximum stack size
 - in case of error stack trace is printed
 
-### S10/L114 Garbage Collection
+### S11/L133 Garbage Collection
 
 - JavaScript is a garbage collected language, does it automatically
 - **Garbage Collector** frees memory on the heap and prevents memory leaks
   - uses **Mark and Sweep** algorithm
 
-### S10/L115 Memory Leaks
+### S11/L134 Memory Leaks
 
 https://developers.soundcloud.com/blog/garbage-collection-in-redux-applications  
 https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/setInterval  
@@ -2478,7 +2526,7 @@ for (let i = 5; i > 1; i++) {
   - Event Listeners
   - functions set in setInterval functions as argument
 
-### S10/L116 Single Threaded
+### S11/L135 Single Threaded
 
 - JavaScript is Single Threaded
   - one set of instructions is executed at the time, not doing multiple things
@@ -2486,12 +2534,12 @@ for (let i = 5; i > 1; i++) {
 - JavaScript is Synchronous (due to single thread)
   - only one thing can happen at the time
 
-### S10/L117 Exercise: Issue With Single Thread
+### S11/L136 Exercise: Issue With Single Thread
 
 - Problem with Single Threaded, Synchronous code: long running tasks block any other execution
 - not just the JavaScript Engine, but the JavaScript Runtime is running the code
 
-### S10/L118 Javascript Runtime
+### S11/L137 Javascript Runtime
 
 http://latentflip.com/loupe/?code=ZnVuY3Rpb24gcHJpbnRIZWxsbygpIHsNCiAgICBjb25zb2xlLmxvZygnSGVsbG8gZnJvbSBiYXonKTsNCn0NCg0KZnVuY3Rpb24gYmF6KCkgew0KICAgIHNldFRpbWVvdXQocHJpbnRIZWxsbywgMzAwMCk7DQp9DQoNCmZ1bmN0aW9uIGJhcigpIHsNCiAgICBiYXooKTsNCn0NCg0KZnVuY3Rpb24gZm9vKCkgew0KICAgIGJhcigpOw0KfQ0KDQpmb28oKTs%3D!!!PGJ1dHRvbj5DbGljayBtZSE8L2J1dHRvbj4%3D
 
@@ -2554,7 +2602,7 @@ function foo() {
 foo();
 ```
 
-### S10/L119 Node.js
+### S11/L138 Node.js
 
 - JavaScript Engine < JavaScript Runtime
 - Node is a JavaScript Runtime
@@ -2569,18 +2617,18 @@ foo();
   - in Node it's possible to access resources like File System
   - does not have `window` but has `global` instead, which has extra things what can't be don in the browser
 
-### S10/L120 Recommended Path: Back To Deno
+### S11/L139 Recommended Path: Back To Deno
 
-## S11 Bonus: Learning TypeScript
+## S12 Bonus: Learning TypeScript
 
-### S11/L121 Quick Note: Upcoming Videos
+### S12/L140 Quick Note: Upcoming Videos
 
-### S11/L122 Introduction To TypeScript
+### S12/L141 Introduction To TypeScript
 
 JavaScript - dynamically typed language
 TypeScript - statically typed language
 
-### S11/L123 Dynamic vs Static Typing
+### S12/L142 Dynamic vs Static Typing
 
 Statically typed language - have to declare the variable explicitly with type
 Dynamically typed language - type check happens during runtime
@@ -2611,7 +2659,7 @@ sum('hello', null); // ERROR happens
   - pros:
     - less time debugging syntax and semantic errors, most of the debugging time is spend to debug logic and errors
 
-### S11/L124 Strongly vs Weakly Typed
+### S12/L143 Strongly vs Weakly Typed
 
 Type coercion in JavaScript:
 ```js
@@ -2623,7 +2671,7 @@ a + 17
 - Weakly typed language tries to figure out how to resolve type mismatches
 - Strongly typed language does not allow type coercion
 
-### S11/L125 Static Typing In JavaScript
+### S12/L144 Static Typing In JavaScript
 
 - Tools making JavaScript a statically typed Language:
   - **Flow**
@@ -2647,11 +2695,11 @@ a + 17
 - **Angular** built with and is using TypeScript
 - **React** community starting to use TypeScript instead of Flow
 
-### S11/L126 Quick Note: Upcoming Videos
+### S12/L145 Quick Note: Upcoming Videos
 
 https://glot.io/new/typescript
 
-### S11/L127 OPTIONAL: Installing TypeScript Compiler
+### S12/L146 OPTIONAL: Installing TypeScript Compiler
 
 https://www.typescriptlang.org/
 
@@ -2665,7 +2713,7 @@ sudo npm install -g typescript
 tsc
 ```
 
-### S11/L128 OPTIONAL: Installing Node.js + TypeScript
+### S12/L147 OPTIONAL: Installing Node.js + TypeScript
 
 https://www.npmjs.com/get-npm  
 https://nodejs.org/en/download/  
@@ -2681,9 +2729,9 @@ https://stackoverflow.com/questions/9652720/how-to-run-sudo-command-in-windows
 https://www.npmjs.com/package/typescript  
 https://stackoverflow.com/questions/39404922/tsc-command-not-found-in-compiling-typescript  
 
-### S11/L129 TypeScript
+### S12/L148 TypeScript
 
-**L129-141/originals.ts**
+**L148-160/originals.ts**
 
 https://www.typescriptlang.org/  
 https://babeljs.io/repl  
@@ -2754,9 +2802,9 @@ console.log(answer);
   - compiler does not compile the code
   - editor underlines the errors
 
-### S11/L130 TypeScript 2
+### S12/L149 TypeScript 2
 
-**L129-141/originals.ts**
+**L148-160/originals.ts**
 
 ```sh
 tsc --init
@@ -2770,9 +2818,9 @@ tsc typescript.ts --watch
 # watching for changes
 ```
 
-### S11/L131 TypeScript 3
+### S12/L150 TypeScript 3
 
-**L129-141/originals.ts**
+**L148-160/originals.ts**
 
 ```typescript
 // boolean
@@ -2799,13 +2847,13 @@ let meh: undefined = undefined;
 let noo: null = null;
 ````
 
-### S11/L132 Resources: TypeScript Types
+### S12/L151 Resources: TypeScript Types
 
-**L129-141/originals.ts**
+**L148-160/originals.ts**
 
-### S11/L133 TypeScript 4
+### S12/L152 TypeScript 4
 
-**L129-141/originals.ts**
+**L148-160/originals.ts**
 
 ```typescript
 //Tuple
@@ -2820,9 +2868,9 @@ let sizeNumb: number = Size.Small;
 alert(sizeName); // Displays 'Medium' as its value is 2 above
 ```
 
-### S11/L134 TypeScript 5
+### S12/L153 TypeScript 5
 
-**L129-141/originals.ts**
+**L148-160/originals.ts**
 
 ```typescript
 //Any
@@ -2845,9 +2893,9 @@ let error = (): never => {
 
 - `never` type - for function that never returns and never reaches end point
 
-### S11/L135 TypeScript 6
+### S12/L154 TypeScript 6
 
-**L129-141/originals.ts**
+**L148-160/originals.ts**
 
 ```typescript
 //Interface
@@ -2876,22 +2924,22 @@ type RobotArmy = {
   count: number,
   type: string,
   magic: string
-}
+};
 ```
 
 - Interfaces create a new name what can be used anywhere
 - Type aliases don't create a new name
 
-### S11/L136 Resources: Type VS Interface
+### S12/L155 Resources: Type VS Interface
 
-**L129-141/originals.ts**
+**L148-160/originals.ts**
 
 https://medium.com/@martin_hotell/interface-vs-type-alias-in-typescript-2-7-2a8f1777af4c  
 https://www.briangonzalez.org/post/interface-types-vs-type-aliases-typescript  
 
-### S11/L137 TypeScript 7
+### S12/L156 TypeScript 7
 
-**L129-141/originals.ts**
+**L148-160/originals.ts**
 
 ```typescript
 // Type Assertion
@@ -2927,15 +2975,15 @@ fightRobotArmy({count: 1, type: 'dragon', magic: 'spell'})
 fightRobotArmy({count: 1, type: 'dragon'})  // works
 ```
 
-### S11/L138 Resources: Type Assertion
+### S12/L157 Resources: Type Assertion
 
-**L129-141/originals.ts**
+**L148-160/originals.ts**
 
 https://basarat.gitbook.io/typescript/
 
-### S11/L139 TypeScript 8
+### S12/L158 TypeScript 8
 
-**L129-141/originals.ts**
+**L148-160/originals.ts**
 
 ```typescript
 //Function
@@ -2972,18 +3020,18 @@ lion.greet();
 // lion.sing  // Won't work if private
 ```
 
-### S11/L140 TypeScript 9
+### S12/L159 TypeScript 9
 
-**L129-141/originals.ts**
+**L148-160/originals.ts**
 
 ```typescript
 //Union Type
 let confused: string | number = 'hello'
 ```
 
-### S11/L141 TypeScript 10
+### S12/L160 TypeScript 10
 
-**L129-141/originals.ts**
+**L148-160/originals.ts**
 
 - Type is infered
 
@@ -2992,11 +3040,11 @@ let x = 3;
 // automatimally detexts x is a number.
 ```
 
-## S12 Bonus: HTTP, AJAX, JSON and APIs
+## S13 Bonus: HTTP, AJAX, JSON and APIs
 
-### S12/L142 Quick Note: Upcoming Videos
+### S13/L161 Quick Note: Upcoming Videos
 
-### S12/L143 HTTP/HTTPS
+### S13/L162 HTTP/HTTPS
 
 - HTML, CSS, JavaScript
 - HTTP/HTTPS
@@ -3011,7 +3059,7 @@ let x = 3;
   - HTTPS - Secure HTTP
     - SSL, TLS
 
-### S12/L144 JSON
+### S13/L163 JSON
 
 - JSON - JavaScript Object Notation
   - Syntax for storing and exchanging data
@@ -3019,13 +3067,13 @@ let x = 3;
 - JSON alternative: XML
 - `JSON.parse()`, `JSON.stringify()`
 
-### S12/L145 JSON vs Form Data
+### S13/L164 JSON vs Form Data
 
 - submit data to the server:
   - originally: sending `<form>` data with POST or GET
   - now: sending content of `<input>` in JSON format (through **AJAX**)
 
-### S12/L146 AJAX
+### S13/L165 AJAX
 
 *JSONView Chrome extension*
 
@@ -3086,7 +3134,7 @@ fetch('https://jsonplaceholder.typicode.com/users').then(response => response.js
 fetch('https://jsonplaceholder.typicode.com/users').then(response => response.json()).then(data => console.log(data));
 ```
 
-### S12/L147 APIs
+### S13/L166 APIs
 
 https://jsonplaceholder.typicode.com  
 https://jsonplaceholder.typicode.com/users  
@@ -3098,6 +3146,6 @@ https://www.w3schools.com/xml/simple.xml
 - API - Application Programming Interface
   - a way how people and/or machines share information
 
-## S13 Extras
+## S14 Extras
 
-### S13/L148 Bonus: Special Thank You Gift
+### S14/L167 Bonus: Special Thank You Gift

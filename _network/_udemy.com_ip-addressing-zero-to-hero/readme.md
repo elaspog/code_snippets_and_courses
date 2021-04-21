@@ -255,3 +255,186 @@ https://www.udemy.com/course/ip-addressing-zero-to-hero
     - no problem if `192.168.1.128/30` network somewhere else on the internet
     - no problem if `192.168.1.64/26` network somewhere else on the internet
       - range: `192.168.1.65` - `192.168.1.127`
+
+## S04 Practice Examples
+
+### S04/E12 Subnetting a Class A network - FLSM (Example 1)
+
+- divide a Class A network `50.0.0.0` into two equal networks
+  - binary format `00110010.00000000.00000000.00000000`
+    - the 9th bit can be used for dividing, mask: `/9`
+
+| Network # | Description          | Binary                              | Decimal        |
+|-----------|----------------------|-------------------------------------|----------------|
+| 1         | Network address      | 00110010.00000000.00000000.00000000 | 50.0.0.0       |
+| 1         | First usable address | 00110010.00000000.00000000.00000001 | 50.0.0.1       |
+| 1         | Last usable address  | 00110010.01111111.11111111.11111110 | 50.127.255.254 |
+| 1         | Broadcast address    | 00110010.01111111.11111111.11111111 | 50.127.255.255 |
+| 2         | Network address      | 00110010.10000000.00000000.00000000 | 50.128.0.0     |
+| 2         | First usable address | 00110010.10000000.00000000.00000001 | 50.128.0.1     |
+| 2         | Last usable address  | 00110010.11111111.11111111.11111110 | 50.255.255.254 |
+| 2         | Broadcast address    | 00110010.11111111.11111111.11111111 | 50.255.255.255 |
+
+### S04/E13 Subnetting a Class A network - FLSM (Example 2)
+
+- how many Class C networks can be created in Class A network `21.0.0.0`?
+  - binary address: `00010101.00000000.00000000.00000000`
+  - Class A: only first octet represents the network portion: `21.X.X.X`
+  - Class C: first three octets represents the network portion: `21.0.0.X`
+  - 3 portions in the address:
+    - network portion
+    - subnet portion
+    - host portion
+  - first octet can't change because
+    - it's in the above requirement
+    - in a purchased Class A address the network portion can't change anyway
+  - last octet can't change because
+    - in a C network this is the host portion
+  - 2 octets can change = 16 bits are for combining the network portion:
+    - from `21.0.0.0` to `21.255.255.0`
+    - from `00010101.00000000.00000000.00000000` to `00010101.11111111.11111111.00000000`
+  - 2^16 = 65536 combinations for subnets
+
+### S04/E14 Subnetting a Class B network - FLSM (Example 1)
+
+- how many Class C networks can be created in Class B network `155.3.0.0`?
+  - Class A: first two octets represents the network portion: `155.3.X.X`
+  - Class C: first three octets represents the network portion: `155.3.0.X`
+  - difference in this example is one octet what can change = 8 bits are for combining the network portion
+    - from `155.3.0.0` to `155.3.255.0`
+    - from `10011011.00000011.00000000.00000000` to `10011011.00000011.11111111.00000000`
+
+### S04/E15 Subnetting a Class B network - FLSM (Example 2)
+
+- in Class B network address of `189.2.0.0` create 9 subnets with 64 addresses, 5 subnets with 100 addresses, 13 subnets with 70 addresses
+  - for FLSM
+    1. find a common subnet mask that satisfies all requested subnets
+    2. count the number of subnets needed
+  - largest subnet: 100 addresses -> (host portion) fits 7 bits (2^7=128)
+  - class B network fixes the first 16 bits (network portion)
+  - 9 bits remained for the subnet portion
+  - in total 9 + 5 + 13 = 27 subnets are needed
+  - the required subnets fit into the available subnets 27 < 512 = 2^9
+  - `10111101.00000010.|00000000.0|0000000`
+  - with mask `189.2.0.0/25` we can create these subnets
+- name the first, the 11th and the last subnet
+  - 1st -> `189.2.0.0`
+    - `10111101.00000010.|00000000.0|0000000`
+  - 11th -> `189.2.5.0`
+    - `10111101.00000010.|00000101.0|0000000`
+    - the value 10 (for 11th value) is split between two octets
+    - in the 3rd octet the bits give 5
+  - last (27th) -> `189.2.13.0`
+    - `10111101.00000010.|00001101.0|0000000`
+
+### S04/E16 Subnetting a Class C network - FLSM
+
+- how many subnets can fit into a Class C network if each subnet has at least 10 addresses?
+  - in Class C address first 3 octets (24 bits) are used for network portion
+    - mask: `/24`
+  - 4 bits are needed for the host portion 2^4 = 16 > 10
+  - `10.10.10.0/24`
+    - `00001010.00001010.00001010.|0000|0000`
+  - the remaining 4 bits can be used for subnetting portion
+    - 16 different subnets can be created
+- is `10.10.10.72` in the same subnet as `10.10.10.80`?
+  - answer: no
+- could be the address `10.10.10.96` allocated to a router interface?
+  - router interface is just like any other endpoint device on the network
+  - can be done if not a Network ID or a Broadcast IP address is allocated on to the `10.10.10.96` address
+  - answer: no, because a Network ID is allocated onto that address
+- what's the first address which can be allocated to a router (or any host) in that range (in the subnet from previous question)?
+  - answer: `10.10.10.97`
+
+| Subnet # | Mask | Network ID  | Broadcast   | Network ID (binary)                 | Broadcast (binary)                  |
+|----------|------|-------------|-------------|-------------------------------------|-------------------------------------|
+| 1        | /28  | 10.10.10.0  | 10.10.10.15 | 00001010.00001010.00001010.00000000 | 00001010.00001010.00001010.00001111 |
+| 2        | /28  | 10.10.10.16 | 10.10.10.31 | 00001010.00001010.00001010.00010000 | 00001010.00001010.00001010.00011111 |
+| 3        | /28  | 10.10.10.32 | 10.10.10.47 | 00001010.00001010.00001010.00100000 | 00001010.00001010.00001010.00101111 |
+| 4        | /28  | 10.10.10.48 | 10.10.10.63 | 00001010.00001010.00001010.00110000 | 00001010.00001010.00001010.00111111 |
+| 5        | /28  | 10.10.10.64 | 10.10.10.79 | 00001010.00001010.00001010.01000000 | 00001010.00001010.00001010.01001111 |
+| 6        | /28  | 10.10.10.80 | 10.10.10.95 | 00001010.00001010.00001010.01010000 | 00001010.00001010.00001010.01011111 |
+
+### S04/E17 Subnetting with VLSM (Example 1)
+
+- in the address range `10.0.0.0/8` the following subnets should be created:
+  - 2 subnets with 500 host each
+  - 1 subnet with 220 host each
+  - 4 subnets with 50 host each
+  - 3 subnets with 10 host each
+  - 2 point-to-point subnets
+- each of the above networks require a Network ID and a Broadcast IP
+- the subnet for
+  - 500+2 address requires 9 bits, the mask is 23
+  - 220+2 address requires 8 bits, the mask is 24
+  - 50+2 address requires 6 bits, the mask is 26
+  - 10+2 address requires 4 bits, the mask is 28
+  - 2+2 address requires 2 bits, the mask is 30
+- while router configuration the CIDR format can't be used
+  - `/28` = `255.255.255.240` = `11111111.11111111.11111111.11110000`
+
+  | # of IPs | Network ID | Mask | Broadcast IP | Range of usable IP addresses | Network ID (binary)                     | Broadcast IP (binary)                   |
+  |----------|------------|------|--------------|-----------------------------|-----------------------------------------|-----------------------------------------|
+  | 500+2    | 10.0.0.0   | /23  | 10.0.1.255   | 10.0.0.1-10.0.1.254         | 00001010.\|00000000.0000000\|0.00000000 | 00001010.\|00000000.0000000\|1.11111111 |
+  | 500+2    | 10.0.2.0   | /23  | 10.0.3.255   | 10.0.2.1-10.0.3.254         | 00001010.\|00000000.0000001\|0.00000000 | 00001010.\|00000000.0000001\|1.11111111 |
+  | 220+2    | 10.0.4.0   | /24  | 10.0.4.255   | 10.0.4.1-10.0.4.254         | 00001010.\|00000000.00000100.\|00000000 | 00001010.\|00000000.00000101.\|11111111 |
+  | 50+2     | 10.0.5.0   | /26  | 10.0.5.63    | 10.0.5.1-10.0.5.62          | 00001010.\|00000000.00000101.00\|000000 | 00001010.\|00000000.00000101.00\|111111 |
+  | 50+2     | 10.0.5.64  | /26  | 10.0.5.127   | 10.0.5.65-10.0.5.126        | 00001010.\|00000000.00000101.01\|000000 | 00001010.\|00000000.00000101.01\|111111 |
+  | 50+2     | 10.0.5.128 | /26  | 10.0.5.191   | 10.0.5.129-10.0.5.190       | 00001010.\|00000000.00000101.10\|000000 | 00001010.\|00000000.00000101.10\|111111 |
+  | 50+2     | 10.0.5.192 | /26  | 10.0.5.255   | 10.0.5.193-10.0.5.254       | 00001010.\|00000000.00000101.11\|000000 | 00001010.\|00000000.00000101.11\|111111 |
+  | 10+2     | 10.0.6.0   | /28  | 10.0.6.15    | 10.0.6.1-10.0.6.14          | 00001010.\|00000000.00000110.0000\|0000 | 00001010.\|00000000.00000110.0000\|1111 |
+  | 10+2     | 10.0.6.16  | /28  | 10.0.6.31    | 10.0.6.17-10.0.6.30         | 00001010.\|00000000.00000110.0001\|0000 | 00001010.\|00000000.00000110.0001\|1111 |
+  | 10+2     | 10.0.6.32  | /28  | 10.0.6.47    | 10.0.6.33-10.0.6.46         | 00001010.\|00000000.00000110.0010\|0000 | 00001010.\|00000000.00000110.0010\|1111 |
+  | 2+2      | 10.0.6.48  | /30  | 10.0.6.51    | 10.0.6.49-10.0.5.50         | 00001010.\|00000000.00000110.001100\|00 | 00001010.\|00000000.00000110.001100\|11 |
+  | 2+2      | 10.0.6.52  | /30  | 10.0.6.55    | 10.0.6.53-10.0.6.54         | 00001010.\|00000000.00000110.001101\|00 | 00001010.\|00000000.00000110.001101\|11 |
+
+### S04/E18 Subnetting with VLSM (Example 2)
+
+- in the address range `176.33.202.0/23` the following subnets should be created:
+  - 2 point-to-point subnets
+  - 1 subnet with 100 hosts each
+  - 3 subnets with 4 hosts each
+  - 2 subnets with 13 hosts each
+
+  | # of IPs | Network ID     | Mask | Broadcast IP   | Range of usable IP addresses   | Network ID (binary)                     | Broadcast IP (binary)                   |
+  |----------|----------------|------|----------------|-------------------------------|-----------------------------------------|-----------------------------------------|
+  | 100+2    | 176.33.202.0   | /25  | 176.33.202.127 | 176.33.202.1-176.33.202.126   | 10110000.00100001.1100101\|0.0\|0000000 | 10110000.00100001.1100101\|0.0\|1111111 |
+  | 13+2     | 176.33.202.128 | /28  | 176.33.202.143 | 176.33.202.129-176.33.202.142 | 10110000.00100001.1100101\|0.1000\|0000 | 10110000.00100001.1100101\|0.1000\|1111 |
+  | 13+2     | 176.33.202.144 | /28  | 176.33.202.159 | 176.33.202.154-176.33.202.158 | 10110000.00100001.1100101\|0.1001\|0000 | 10110000.00100001.1100101\|0.1001\|1111 |
+  | 4+2      | 176.33.202.160 | /29  | 176.33.202.167 | 176.33.202.161-176.33.202.166 | 10110000.00100001.1100101\|0.10100\|000 | 10110000.00100001.1100101\|0.10100\|111 |
+  | 4+2      | 176.33.202.168 | /29  | 176.33.202.175 | 176.33.202.169-176.33.202.174 | 10110000.00100001.1100101\|0.10101\|000 | 10110000.00100001.1100101\|0.10101\|111 |
+  | 4+2      | 176.33.202.176 | /29  | 176.33.202.183 | 176.33.202.177-176.33.202.182 | 10110000.00100001.1100101\|0.10110\|000 | 10110000.00100001.1100101\|0.10110\|111 |
+  | 2+2      | 176.33.202.184 | /30  | 176.33.202.187 | 176.33.202.185-176.33.202.186 | 10110000.00100001.1100101\|0.101110\|00 | 10110000.00100001.1100101\|0.101110\|11 |
+  | 2+2      | 176.33.202.188 | /30  | 176.33.202.191 | 176.33.202.189-176.33.202.190 | 10110000.00100001.1100101\|0.101110\|00 | 10110000.00100001.1100101\|0.101111\|11 |
+
+### S04/E19 Summarization - Example
+
+- when a lot of consecutive subnets are in one **area** a summary IP can be used
+- subnet addresses:
+  - `192.168.96.0/24`
+  - `192.168.97.0/24`
+  - `192.168.98.0/24`
+  - `192.168.99.0/24`
+  - `192.168.100.0/24`
+  - `192.168.101.0/24`
+  - `192.168.102.0/24`
+- in the 3d octet
+  - the first 5 bits always match
+  - the last 3 bits varies
+- this is the 21st bit (the new mask for summary IP)
+  - the 3rd octet is always: `01100|XXX`
+  - for the mask the changing bits will be `0`: `01100|000`
+  - therefore the summary IP: `192.168.96.0/21`
+
+|               | 128 | 64 | 32 | 16 | 8 |    | 4 | 2 | 1 |
+|---------------|-----|----|----|----|---|----|---|---|---|
+| 192.168.(96)  | 0   | 1  | 1  | 0  | 0 | \| | 0 | 0 | 0 |
+| 192.168.(97)  | 0   | 1  | 1  | 0  | 0 | \| | 0 | 0 | 1 |
+| 192.168.(98)  | 0   | 1  | 1  | 0  | 0 | \| | 0 | 1 | 0 |
+| 192.168.(99)  | 0   | 1  | 1  | 0  | 0 | \| | 0 | 1 | 1 |
+| 192.168.(100) | 0   | 1  | 1  | 0  | 0 | \| | 1 | 0 | 0 |
+| 192.168.(101) | 0   | 1  | 1  | 0  | 0 | \| | 1 | 0 | 0 |
+| 192.168.(102) | 0   | 1  | 1  | 0  | 0 | \| | 1 | 1 | 0 |
+
+- one more IP address fits to the above summary IP: `192.168.103.0/24`
+  - if the routers outside the area are configured with summary IP: `192.168.96.0/21` then it routes to the wrong destination

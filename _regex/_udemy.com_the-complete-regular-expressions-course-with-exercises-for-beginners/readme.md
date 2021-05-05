@@ -231,3 +231,99 @@ https://regex101.com
   - matches: `0`, `1`, `9`
 - regex: `/\D/g` or `/[\D]/g` or `/[^\d]/g`
   - does not match: `0`, `1`, `9`
+
+## S03 Quantifiers and Repetitions
+
+https://regex101.com  
+
+### S03/E18 Quantifiers and Repetitions
+
+- **quantifier repetition**
+  - `*` - matches zero or more of previous characters
+  - `+` - matches one or more of previous characters
+  - `?` - matches zero or one of previous characters
+- supported by all engines except old Unix tools like BRE
+
+
+- regex: `/Flavou?r/g`
+  - matches: `Flavor`, `Flavour`
+- regex: `/Flavou?r/g`
+  - matches: `Flavor`, `Flavour`
+- regex: `/Encyclopa?edia/g`
+  - matches: `Encyclopaedia`, `Encyclopedia`
+- regex: `/Buz*/g`
+  - matches: `Bu`, `Buz`, `Buzz`, `Buzzz`, `Buzzzz`
+- regex: `/[0-9][0-9][0-9][0-9]+/g`
+  - matches: `0123`, `6565`, `5685444646450`, `454545`
+  - does not match: `012`, `2`, `86`
+
+### S03/E19 Limiting Repetition
+
+- **quantified repeition**
+  - `{num_exact}` - match exactly number of previous
+  - `{num_min, num_max}` - match at least min but not more than max of previous characters
+  - `{num_min,}` - match at least min of previous
+
+
+- regex: `/[0-9]{3}/g`
+  - matches: `000`, `723`, `458`, `787`
+  - does not match: `45`, `4545`, `1`, `12`, `89`
+- regex: `/[0-9]{3,}/g`
+  - matches: `000`, `723`, `4545`, `5664455`, `458`, `787`
+  - does not match: `45`, `1`, `12`, `89`
+- regex: `/[0-9]{3,5}/g`
+  - matches: `000`, `723`, `4545`, `458`, `78963`
+  - does not match: `45`, `5664455`
+- regex: `/[0-9]{3}-[0-9]{3}-[0-9]{4}/g`
+  - matches: `000-454-7845`, `000-478-8446`
+  - does not match: `000-454-45782`, `1-454-4444`, `456-8-54555`
+- regex: `/\w+-SSN-\d{9}-DOB-\d{4}/g`
+  - matches: `Johnson-SSN-059754623-DOB-1994`, `Peter-SSN-657454623-DOB-1964`
+  - does not match: `Laal-SSN-657454623-DOB-64`, `Hassan-SSN-7844426458-DOB-1999`
+- regex: `/[a-z]{3,}/g`
+  - matches: `aaa`, `zzzzz`, `uuiaia`, `tasasasas`
+  - does not match: `p`, `aa`
+
+### S03/E20 Greedy Expressions
+
+- regular expression engine are greedy
+- regex tries to repeat the quantifier (`*+?`) as many times as possible
+- greedy algorithm:
+  - for every position in the string
+    - match the pattern at that position
+    - if there is no match, go to the next position
+
+
+- regex: `/".+"/g`
+  - in `earth has "mountains" and many "seas" to explore`
+  - matches `"mountains" and many "seas"`
+  - where first selects by `.+`, finds the end of the string, then backtracks
+- regex: `/.*[0-9]+/`
+  - in `agent 007`
+  - matches `agent 00` by pattern `.*` and `7` by `[0-9]+`
+
+### S03/E21 Lazy Expressions
+
+- lazy mode `?` after quantifiers (`*+?`) - is the opposite of greedy mode
+  - `*?`
+  - `+?`
+  - `??`
+- **greedy mode**: *repeat maximum number of times*
+- **lazy mode**: *repeat minimum number of times*
+
+
+- regex: `/".+?"/g`
+  - in `earth has "mountains" and many "seas" to explore`
+  - matches `"mountains"` and `"seas"` (multiple matches because mode `g`)
+  - where after finding the first `"`, it searches for `.` the minimum number of times, until it finds the second `"`
+  - the same result is given by non-lazy `/"[^"]+/g"`
+- regex: `/.*?[0-9]+/`
+  - in `agent 007`
+  - matches `agent ` by pattern `.*` and `007` by `[0-9]+`
+
+### S03/E22 Greedy Lazy Testing
+
+- difference in behavior between greedy and lazy approach
+- regex: `/\d+ \d+?/g`
+  - in string `123 456` matches `123 4`
+  - in string `123 4567896 5` matches `123 4` and `567896 5`

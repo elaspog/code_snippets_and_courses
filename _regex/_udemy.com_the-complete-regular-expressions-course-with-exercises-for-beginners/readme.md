@@ -327,3 +327,129 @@ https://regex101.com
 - regex: `/\d+ \d+?/g`
   - in string `123 456` matches `123 4`
   - in string `123 4567896 5` matches `123 4` and `567896 5`
+
+## S04 Groups
+
+### S04/E23 Groups
+
+- **groups** `()`
+  - can't be used inside a character set `[()]`
+- used in **find & replace**
+
+
+- regex: `/(xyz)+/g`
+  - matches: `xyz`, `xyzxyz`
+  - does not match: `xyzxcz`
+- regex: `/([a-z]+[0-9]{0,3})/g`
+  - matches: `zero team`, `longisland team`, `redbay777 team`
+  - does not match: `beach7777 team`
+
+### S04/E24 Alternation
+
+- **choice or alternation** `|`
+
+
+- regex: `/boy|girl/g`
+  - matches: `boy`, `girl`
+  - does not match: `boygirl`, `man`
+- regex: `/I think Pakistan/India/Australia will win a world cup 2050/g`
+  - matches: `I think Pakistan`, `India`, `Australia will win a world cup 2050`
+- regex: `/I think (Pakistan/India/Australia) will win a world cup 2050/g`
+  - matches: `I think Pakistan will win a world cup 2050`, `I think India will win a world cup 2050`, `I think Australia will win a world cup 2050`
+  - does not match: `I think America will win a world cup 2050`
+
+### S04/E25 Nested Alternation
+
+- regex: `/((usa|china) likes blue|(russia|canada) likes green)/g` or `/(((usa|china) likes blue)|((russia|canada) likes green))/g`
+  - matches: `usa likes blue`, `china likes blue`, `russia likes green`
+  - does not match: `usa likes bluecanada likes green`, `usa likes green`, `china likes green`
+
+### S04/E26 Anchors
+
+- **anchor**
+  - don't match any character
+  - match a position before/after/between characters
+  - `^` - match at the beginning of the string or line
+  - `$` - match at the end of the string or line, or before `\n` at the end of the string or line
+- `^`, `$`
+  - supported by all regex engines
+  - useful to use in `m` mode
+- **warning**: `^[...]` should not be confused with `[^...]`
+  - the former is an anchor to the beginning of the line
+  - the later is restricting set
+  - the combination can be used: `^[^...]`
+
+
+- regex: `/^a[y-z]+o$/g`
+  - matches: `azo` if only this string is tested, `ayo` if only this string is tested
+  - does not match: `azo` if `ayo` is present, `ayo` if `azo` is present, `axo`
+- regex: `/^a[y-z]+o$/gm`
+  - matches (because of multiline): `azo`, `ayo`
+  - does not match: `axo`
+- regex: `/^[a-z]+$/gm`
+  - matches: `red`, `blue`, `yellow`, `green`, `black`
+- regex: `/^[a-z]+$/g`
+  - when the tested string (in different lines) is `red`, `blue`, `yellow`, `green`, `black`
+  - does not match: `red`, `blue`, `yellow`, `green`, `black`
+
+### S04/E27 Another Anchors Example
+
+- in test input: ```Hi, my name is Will Smith.I acted in many movies. i have a huge following. People like me all over the world due to my acting and social work.It's his life.```
+- the first sentence is selected by: `^[A-Z][a-zA-Z, ]+\.` or `^[A-Z][a-zA-Z ',]+\.`
+- the last sentence is selected by: `[A-Z][a-zA-Z ',]+\.$`
+
+### S04/E28 Other Alternative Anchors
+
+- **anchor**
+  - `\A` - match at the beginning of the string only (no multiline support)
+  - `\Z` - match at the end of the string, or before `\n` at the end of the string
+  - `\z` - match at the end of the string only
+    - opposite of `\Z`
+- `\A`, `\Z`, `\z`
+  - supported by: .NET, Python, PHP, Ruby, Perl, Java
+- better to use `^` and `$` instead because of the better support
+
+
+- on test input:
+```
+M is my name
+M is my name
+M is my name
+M is my name
+```
+- regex: `/\AM is my name/gm` or `/\AM is my name/g`
+  - matches the first line
+- regex: `/M is my name\Z/gm` or `/M is my name\Z/g`
+  - matches the last line
+
+### S04/E29 Word Boundaries
+
+- **anchor**
+  - `\b` - match at a word boundary
+  - `\B` - match not at a word boundary
+- conditions of **word boundary**:
+  - **word character**: (`[a-zA-Z0-9_]` or `\w`)
+  - before the first character in the string, if the first character is a word character
+  - after the last character in the string, if the last character is a word character
+  - between two characters in the string, where one is a word character and the other is not a word character
+- `\b`, `\B`
+  - not supported in Unix BRE
+- `\bword\b` - to perform whole words only search for `word`
+  - `\b\w+\b`
+- word boundaries are not characters and have zero length, they are just representing positions of characters
+
+
+- regex: `/\b\w+\b/g`
+  - matches: `jazebakram`, `jazeb_akram`, `jazeb12345akram`
+  - does not match: `jazeb-akram`
+  - matches: `jazeb` and `akram` in `jazeb-akram`
+- regex: `/\b-\b/g`
+  - does not match: `-` because it doesn't belong to word character
+- on test input: `roses are red`
+  - regex: `/roses\bare\b red/g` does not match because space itself is a character
+  - regex: `/roses \bare\b red/g` matches
+- in test input: ```Hi, my name is Will Smith.I acted in many movies. i have a huge following. People like me all over the world due to my acting and social work. it's his life.```
+  - regex: `/\b[A-Z]+\b/g`
+    - returns word `I`
+  - regex: `/\b[a-z]+\b/g`
+    - returns words which are in lower case and have no characters other than word character, like: `my`, `name`, `is`, `acted`, `in`, `many`, `movies`, `i`, `have`, `a`, `huge`, `following`, `like`, `me`, `all`, `over`, `the`, `world`, `due`, `to`, `my`, `acting`, `and`, `social`, `work`, `it`, `s`, `his`, `life`

@@ -330,6 +330,8 @@ https://regex101.com
 
 ## S04 Groups
 
+https://regex101.com
+
 ### S04/E23 Groups
 
 - **groups** `()`
@@ -453,3 +455,86 @@ M is my name
     - returns word `I`
   - regex: `/\b[a-z]+\b/g`
     - returns words which are in lower case and have no characters other than word character, like: `my`, `name`, `is`, `acted`, `in`, `many`, `movies`, `i`, `have`, `a`, `huge`, `following`, `like`, `me`, `all`, `over`, `the`, `world`, `due`, `to`, `my`, `acting`, `and`, `social`, `work`, `it`, `s`, `his`, `life`
+
+## S05 Advance Topics in Groups
+
+https://regex101.com
+
+### S05/E30 Capturing and Back-references
+
+- **Backreferences** for **Groups** - captured data can be referenced
+  - useful for Find and Replace text
+  - group stores the data but not the expression
+  - groups can't be used inside character sets `[()]`
+  - engine support:
+    - most: `\1` ... `\9`
+    - some: `$1` ... `$9`
+
+
+- regex: `/(ab)(cd)\1\2/`
+  - matches: `abcdabcd`
+- regex: `/(ab)(cd)\2/`
+  - matches: `abcdcd`
+- regex: `/(ab)(cd)(jazeb)(akram)\2\4/`
+  - matches: `abcdcdjazebakramcdakram`
+- regex: `/(Bruce) Wayne \1/`
+  - matches: `Bruce Wayne Bruce`
+
+### S05/E31 Capturing and Back-references Examples
+
+- in test input: ```Hi, my name is Will Smith.I acted in many movies. i have a huge following. People like me all over the world due to my acting and social work. it's his life.```
+  - regex: `/\b(\w)+\b/g` matches all the words
+  - regex: `/\b(\w)+\b\1/g` matches nothing
+  - regex: `/\b(\w)+\b \1/g` matches `world d`
+    - because `+` is outside of the captured group
+  - regex: `/\b(\w+)\b \1/g` matches `many many`
+- in test input:
+```
+<em>Hi, my name is Will Smith.I acted in many movies. i have a huge following. People like me all over the world due to my acting and social work. it's his life.</em>
+<h1>tag is </h1>
+<p>jadhajdhaj</p>
+```
+  - regex `/<em>[a-zA-Z ,'\.]<\/em>/g` matches the first element of HTML content
+  - regex `/<([a-z][a-z0-9]*)>.*<\/\1>/g` matches all the elements of HTML content
+- in test input:
+```
+<em>>Hi, my name is Will Smith.I acted in many movies. i have a huge following. People like me all over the world due to my acting and social work. it's his life.</em>
+<h1>tag is </h1>
+<p>jadhajdhaj</p>
+```
+  - regex `/<([a-z][a-z0-9]*)\b[^>]*>.*<\/\1>/g` matches all the elements of HTML content when the content of the element starts with `>` character
+
+### S05/E32 Application
+
+- in test input:
+```
+01-SSN 789545142 Alan kook 1992
+02-SSN 685545142 Kin Adams 1991
+03-SSN 789545555 Jummy Adams 1990
+04-SSN 752145572 Nicholas Sardieg 2020
+05-SSN 122545142 James Nishator S.Kaka 1961
+...
+30-SSN 564600055 Nash John 2014
+```
+- regex: `/^d{1,2}-\w{3}\s\d{9}\s[\w .]+?[\w .]+?\s\d{4}/gm` matches all lines
+- regex: `/^(d{1,2})-(\w{3})\s(\d{9})\s([\w .]+?)\s([\w .]+?)\s(\d{4})/gm` captures the fields
+  - in editor replace by pattern with **Find and Replace**:
+    - `$1:$2 $3 $4 $5 $6` - form id it changes the `-` to `:`
+    - `$1-$2 $3 $5, $4 $6` - changes the order of the name
+    - `$1-$2 $3 $4 $5 $6,` - puts `,` at the end of the record
+
+### S05/E33 Non Capturing Groups
+
+- **Non-Capturint Groups** `(?:)`
+  - increases speed of regular expressions
+  - makes room to capture necessary groups
+  - supported by most regex engines except old Unix tools
+
+
+- regex: `/(ab)(?:cd)\1/`
+  - matches: `abcdab`
+  - does not match: `abcdabcd`
+- in regex: `/(ab)(?:cd)\1\2/` the second group is not captured and `\2` can't be referenced
+- regex: `/(?:red) looks (white) \1 to me/`
+  - matches: `red looks white white to me`
+  - does not match: `red looks white red to me`

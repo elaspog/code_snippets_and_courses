@@ -538,3 +538,125 @@ https://regex101.com
 - regex: `/(?:red) looks (white) \1 to me/`
   - matches: `red looks white white to me`
   - does not match: `red looks white red to me`
+
+## S06 Assertions
+
+https://regex101.com
+
+### S06/E34 Look Around Assertions
+
+- Look Around Assertions
+  - types:
+    - **Look Ahead Assertions**
+      - **Positive Look Ahead Assertions**
+      - **Negative Look Ahead Assertions**
+    - **Look Behind Assertions**
+      - **Positive Look Behind Assertions**
+      - **Negative Look Behind Assertions**
+  - zero length assertions
+  - matches characters, then gives up the matches
+  - return only the result: match or no match
+
+### S06/E35 Positive Look Ahead Assertions
+
+- **Positive Look Ahead Assertions** `(?=)`
+  - to match something followed by something else
+  - supported by most regex engines except some Unix tools
+- two possible locations in usage which are equal in behavior:
+  - `/match(?=assertion)/`
+  - `/(?=matchassertion)match/`
+
+
+- regex: `/long(?=island)/g` or `/(?=longisland)long/g`
+  - matches: `longisland`
+  - does not match: `longdrive`, `longbeach`
+
+### S06/E36 Positive Look Ahead Assertions Example 1
+
+- regex: `/\b[a-zA-Z]+\b(?=\.)/g`
+  - matches: sentence ending words but not including the `.`
+- regex: `/\b[a-zA-Z]+\b(?=\,)/g`
+  - matches: last words before `,`
+  - e.g.: `Office,` or `office,` or `internationally,`
+- regex: `/\b(?=\w*ce)[a-zA-Z]+\b(?=\,)/g`
+  - matches: last words before `,` which ends with `ce`
+  - e.g.: `Office,` or `office,`
+- regex: `/\b(?=\w*ce)(?=\w*O)[a-zA-Z]+\b(?=\,)/g`
+  - matches: last words before `,` which contains `ce` and `O`
+  - e.g.: `Office,`
+
+### S06/E37 Positive Look Ahead Assertions Example 2
+
+- in text:
+```
+000-123-7544
+213-466-4562
+321-452-3412
+```
+- regex: `/\d{3}-\d{3}-\d{4}/g`
+  - choses all of the phone numbers
+- regex: `/(?=^[0-6\-]+$)\d{3}-\d{3}-\d{4}/g`
+  - selects the phone numbers containing only characters between `[0-6]`
+    - `213-466-4562`, `321-452-3412`
+- regex: `/(?=^[0-6\-]+$)(?=.*321)\d{3}-\d{3}-\d{4}/g`
+  - selects the phone numbers where `321` is in any place and which contains only characters between `[0-6]`
+    - `321-452-3412`
+
+### S06/E38 Negative Look Ahead Assertions with Example
+
+- **Negative Look Ahead Assertions** `(?!)`
+  - to match something not followed by something else
+  - supported by most regex engines except some Unix tools
+
+
+- regex: `/long(?!island)/g` or `/(?!longisland)long/g`
+  - matches: `longdrive`, `longbeach`
+  - does not match: `longisland`
+- regex: `/\b[a-zA-Z]+\b(?!\.)/g`
+  - selects the words which are not the last words of the sentences
+- regex: `/\b[a-zA-Z]+\b(?!,)/g`
+  - selects the words which are not followed by commas
+
+### S06/E39 Look Behind Assertions types with Examples
+
+- **Look Behind Assertions**
+  - not widely supported
+  - supported in: .NET, Python, PHP, Ruby 1.9, Perl, Java
+  - not supported by JavaScript, Unix tools
+- **Positive Look Behind Assertions** `(?<=)`
+  - to match something preceded by something else
+- **Negative Look Behind Assertions** `(?<!)`
+  - to match something not preceded by something else
+
+
+- regex: `/(?<=a)b/g`
+  - matches: `ab`, `cab`, `tab`, `dabt`
+  - does not match: `bed`, `debt`
+- regex: `/(?<!a)b/g`
+  - matches: `bed`, `debt`
+  - does not match: `ab`, `cab`, `tab`, `dabt`
+- regex: `/(?<=long)island/g`
+  - matches: `longisland`
+  - does not match: `longdrive`, `driveisland`
+- regex: `/(?<!long)island/g`
+  - matches:  `driveisland`
+  - does not match: `longdrive`, `longisland`
+- regex: `/\b\w+(?<=s)\b/g`
+  - matches all the words which ends with `s`
+- regex: `/\b\w+(?<!s)\b/g`
+  - matches all the words which does not end with `s`
+
+### S06/E40 Uni-Codes
+
+- **UniCode**
+  - variable byte size
+  - `U+` 4 digit hexadecimal, e.g.: `ě` is represented by `U+011B`
+    - for regular expression is represented by `\u011B`
+  - Regex engines use `\u` or `\x` to represent UniCode
+- regex101.com:
+  - **PCRE** flavor - Pearl Compatible Regular Expressions
+
+
+- regex: `/b\u011Bll/g` (in JavaScript flavor)
+  - matches: `běll`
+  - does not match: `bell`

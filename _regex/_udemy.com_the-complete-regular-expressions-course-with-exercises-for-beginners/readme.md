@@ -133,10 +133,10 @@ https://regex101.com
 ### S02/E12 Character Set
 
 - **character set** `[]` - matches any character from this set
-- regex: `/[cd]ash]/g`
+- regex: `/[cd]ash/g`
   - matches: `cash`, `dash`
   - does not match: `tash`
-- regex: `/[vr]a[nd]ish]/gi`
+- regex: `/[vr]a[nd]ish/gi`
   - matches: `vanish`, `Radish`
   - does not match: `zanish`, `danish`
 
@@ -184,7 +184,7 @@ https://regex101.com
 
 ### S02/E15 Escaping Meta Characters
 
-- **excaping* `\` - escapes special characters
+- **excaping** `\` - escapes special characters
 - regex: `/jazeb\/akram/g`
   - matches: `jazeb/akram`
 - regex: `/jazeb\.akram/g`
@@ -660,3 +660,273 @@ https://regex101.com
 - regex: `/b\u011Bll/g` (in JavaScript flavor)
   - matches: `běll`
   - does not match: `bell`
+
+## S07 Projects
+
+### S07/E41 All Project Expressions files
+
+https://www.dropbox.com/s/2ir9nfn6q6vh5b3/Lecture%2038.1%20Project%20file%20_%20All%20Codes.pdf?dl=0
+
+### S07/E42 Names
+
+- Rules
+  - include `a-zA-Z`
+  - must start with `A-Z`
+  - no Numbers
+  - no Symbols
+  - `.`, `,` and ` ` (space) are allowed
+  - length
+  - no consecutive double spaces, commas, dot are allowed
+
+```
+/^(?!.*\s\s)(?!.*\.\.)(?!.*,,)[A-Z][a-zA-Z .,]{2,30}$/
+```
+
+### S07/E43 Name Exercise
+
+### S07/E44 Email
+
+- Rules
+  - include `a-zA-Z`
+  - must have `@`
+  - numbers, symbols allowed
+  - valid
+  - no consecutive double dots are allowed
+
+```
+/^(?!.*\.\.)[\w.\-#!$%&'*+\/=?^_`{}|~]{1,35}@[\w.\-]+\.[a-zA-Z]{2,15}$/
+```
+
+### S07/E45 Email Exercise
+
+Valid emails as per wikipedia.org
+```
+x@example.com
+prettyandsimple@example.com
+very.common@example.com
+disposable.style.email.with+symbol@example.com
+other.email-with-dash@example.com
+fully-qualified-domain@example.com
+example@s.solutions
+best%@best.com
+#!$%&'*+-/=?^_`{}|~@example.org
+admin@regex101.com.au
+```
+Invalid emails as per wikipedia.org
+```
+admin@regex101.com.au.
+1234567890123456789012345678901234567890123456789012345678901234+x@example.com
+john..doe@example.com
+john.doe@example..com
+A@b@c@example.com
+```
+
+### S07/E46 URLs
+
+```
+/^(?:http|https|ftp):\/\/[a-zA-Z0-9_~:\-\/?#[\]@!$&'()*+,;=`^.%]+\.[a-zA-Z0-9_~:\-\/?#[\]@!$&'()*+,;=`^.%]+$/
+```
+
+### S07/E47 Web Address URLs Exercise
+
+https://en.wikipedia.org/wiki/List_of_Internet_top-level_domains
+
+```
+http://foo.com/blah_blah
+http://foo.com/blah_blah?
+http://fooTV.us
+http://foo.com/blah_blah_(wikipedia)
+https://en.wikipedia.org/wiki/List_of_Internet_top-level_domains
+http://foo.com/blah_blah_(wikipedia)_(again)
+http://www.example.com/wpstyle/?p=364
+https://www.example.com/foo/?bar=baz&inga=42&quux
+http://df.ws/123
+http://userid:password@example.com:8080
+http://userid:password@example.com:8080/
+http://userid@example.com
+http://userid@example.com/
+http://userid@example.com:8080
+http://userid@example.com:8080/
+http://userid:password@example.com
+http://userid:password@example.com/
+http://142.42.1.1/
+http://142.42.1.1:8080/
+```
+
+### S07/E48 IP Addresses
+
+- limits
+  - lower limit: `0.0.0.0.`
+  - upper limit: `255.255.255.255`
+- character ranges:
+  - 250-255: `25[0-5]`
+  - 200-249: `2[0-4][0-9]`
+  - 100-199: `1[0-9][0-9]`
+  - 000-099: `0?[0-9][0-9]?`
+- combined 100-199 and 000-099: `[01]?[0-9][0-9]?`
+  - (in second position greedy vs. lazy)
+
+```
+/^(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/
+```
+
+### S07/E49 IP Exercise
+
+### S07/E50 Dates
+
+- month: `(0?[1-9]|1[012])`
+- day: `(0?[1-9]|1[0-9]|2[0-9]|3[01])`
+- year in range from 2000 to 2050: `(20[0-4][0-9]|2050)`
+
+```
+/^(?:0?[1-9]|1[012])([\/\-])(?:0?[1-9]|1[0-9]|2[0-9]|3[01]\1(?:20[0-4][0-9]|2050)$/
+```
+
+### S07/E51 Date Exercise
+
+### S07/E52 Times
+
+- 12 Hour Format
+  - hours `(0?[1-9]|1[012])`
+  - minutes `[0-5]?[0-9]`
+  - seconds `[0-5]?[0-9]`
+- 24 Hour Format
+  - hours `(0?[0-9]|1[0-9]|2[0-3])`
+  - minutes `[0-5]?[0-9]`
+  - seconds `[0-5]?[0-9]`
+
+```
+/^(?:0?[1-9]|1[012]):(?:[0-5]?[0-9])(?::[0-5]?[0-9])?(?: am| pm| AM| PM)?$/
+/^(?:0?[0-9]|1[0-9]|2[0-3]):(?:[0-5]?[0-9])(?::[0-5]?[0-9])?(?: GMT| EST)?$/
+```
+
+### S07/E53 Time Exercise
+
+### S07/E54 Postal Codes
+
+- no rule, because it's different in each country
+- e.g.:
+  - Pakistan
+```
+/^\d{5}$/
+```
+  - India
+```
+/^\d{6}$/
+```
+  - Canada
+```
+/^[A-Z]\d[A-Z] \d[A-Z]\d$/
+```
+  - USA
+```
+/^\d{5}(?:-\d{4})?$/
+```
+  - UK
+```
+^[A-Z]{1,2}\d{1,2} \d[A-Z]{2}$
+^[A-Z]{1,2}\d[A-Z] \d[A-Z]{2}$
+```
+    - Complete UK
+```
+/^(?:[A-Z]{1,2}\d{1,2} \d[A-Z]{2})|(?:[A-Z]{1,2}\d[A-Z] \d[A-Z]{2})$/
+```
+
+### S07/E55 ZIP Code Exercise
+
+```
+UK
+A9 9AA
+A99 9AA
+AA9 9AA
+AA99 9AA
+AA9A 9AA
+A9A 9AA
+```
+
+### S07/E56 Credit Crad Numbers
+
+- card formats
+  - Visa
+    - 16 digits
+    - starts with `4`
+  - Discover
+    - 16 digits
+    - starts with `6011`
+  - China Union Pay
+    - 16 digits
+    - starts with `62`
+  - Mastercard
+    - 16 digits
+    - starts with `51` to `55`
+  - American Express
+    - 15 digits
+    - starts with `34` or `37`
+- regex
+  - regex for cards containing 16 digits
+  ```
+  /^(4\d{3}|5[1-5]\d{2}|6011|62\d{2})[\- ]?\d{4}[\- ]?\d{4}[\- ]?\d{4}$/
+  ```
+  - regex for cards containing 15 digits
+  ```
+  /^(3[47])\d{2}[\- ]?\d{6}[\- ]?\d{5}$/
+  ```
+  - regex for all credit cards (listed above):
+  ```
+  /^(?:(?:4\d{3}|5[1-5]\d{2}|6011|62\d{2})([\- ]?)\d{4}\1\d{4}\1\d{4})|(?:(?:3[47])\d{2}([\- ]?)\d{6}\2\d{5})$/
+  ```
+
+### S07/E57 CCN Exercise
+
+```
+Visa
+4000123412341234
+4000-1234-1234-1234
+
+Discover
+6011123412341234
+6011-1234-1234-1234
+
+China Union Pay
+6200-1234-1234-1234
+6200123412341234
+
+Mastercard
+5100123412341234
+5100-1234-1234-1234
+5200123412341234
+5200-1234-1234-1234
+5300123412341234
+5300-1234-1234-1234
+5400123412341234
+5400-1234-1234-1234
+5500123412341234
+5500-1234-1234-1234
+
+American Express
+370012345612345
+3700-123456-12345
+340012345612345
+3400-123456-12345
+```
+
+### S07/E58 Passwords
+
+- Password constraints
+  - length 8 to 15
+  - at least 1 digit
+  - at least 1 a-z
+  - at least 1 A-Z
+  - at least 1 symbol
+
+```
+/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[~!#$%^&*()_+=\-{}[\];:<>?]).{8,15}$/
+```
+
+### S07/E59 Password Exercise
+
+## S08 Last
+
+### S08/E60 Bonus Lecture
+
+### S08/E61 For more
